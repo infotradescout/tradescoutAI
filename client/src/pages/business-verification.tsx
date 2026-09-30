@@ -44,6 +44,8 @@ type SanitizedVerificationSubmissions = Readonly<{
 
 type ProfileVerificationResponse = Readonly<{
   profileId?: string;
+  publicProfileId?: string;
+  publicReleaseVerificationSatisfied?: boolean;
   displayName?: string;
   verificationBypassActive?: boolean;
   verificationStatus?: string;
@@ -155,11 +157,13 @@ export default function BusinessVerificationPage() {
   const queryClient = useQueryClient();
   const params = useMemo(() => parsePageQuery(location), [location]);
   const requestedBusinessProfileId = String(params.get("businessProfileId") || "").trim();
+  const requestedPublicProfileId = String(params.get("publicProfileId") || "").trim();
   const requestedNext = String(params.get("next") || "").trim();
   const safeNext = isSafeNextPath(requestedNext) ? requestedNext : "";
-  const endpoint = requestedBusinessProfileId
-    ? `/api/profile/verification?businessProfileId=${encodeURIComponent(requestedBusinessProfileId)}`
-    : "/api/profile/verification";
+  const targetQuery = new URLSearchParams();
+  if (requestedBusinessProfileId) targetQuery.set("businessProfileId", requestedBusinessProfileId);
+  if (requestedPublicProfileId) targetQuery.set("publicProfileId", requestedPublicProfileId);
+  const endpoint = targetQuery.size ? `/api/profile/verification?${targetQuery}` : "/api/profile/verification";
 
   const [licenseNumber, setLicenseNumber] = useState("");
   const [taxIdLast4, setTaxIdLast4] = useState("");
@@ -167,7 +171,13 @@ export default function BusinessVerificationPage() {
 
   const { data, isLoading, error } = useQuery<ProfileVerificationResponse>({
     queryKey: [endpoint],
-    queryFn: () => apiRequest("GET", endpoint),
+    queryFn: async () => {
+      const response = await apiRequest("GET", endpoint) as ProfileVerificationResponse;
+      if (requestedPublicProfileId && response?.publicProfileId !== requestedPublicProfileId) {
+        throw new Error("Verification did not match this business profile. Open its review again.");
+      }
+      return response;
+    },
     enabled: isAuthenticated,
     retry: false,
   });
@@ -192,7 +202,10 @@ export default function BusinessVerificationPage() {
       data?.verificationStatus ||
       (typeof data?.status === "string" ? data.status : "")
   );
-  const overallState: ReviewState = actionNeeded
+  const identityStatus = typeof data?.status === "object" ? data.status : {};
+  const missingEmail = Boolean(requestedPublicProfileId && data?.requirements?.email && identityStatus.email !== true);
+  const missingAddress = Boolean(requestedPublicProfileId && data?.requirements?.address && identityStatus.address !== true);
+  const documentState: ReviewState = actionNeeded
     ? fieldResolutions.some(({ resolution }) => resolution.state === "rejected")
       ? "rejected"
       : "pending"
@@ -202,6 +215,9 @@ export default function BusinessVerificationPage() {
       : fieldResolutions.some(({ resolution }) => resolution.state === "submitted")
         ? "submitted"
         : serverOverallState;
+  const overallState: ReviewState = !bypassActive && requestedPublicProfileId &&
+    (missingEmail || missingAddress || (documentState === "approved" && data?.publicReleaseVerificationSatisfied === false))
+    ? "pending" : documentState;
 
   const patchMutation = useMutation({
     mutationFn: (payload: Record<string, string>) =>
@@ -212,7 +228,9 @@ export default function BusinessVerificationPage() {
   });
 
   const basePayload = (): Record<string, string> =>
-    effectiveBusinessProfileId ? { businessProfileId: effectiveBusinessProfileId } : {};
+    requestedPublicProfileId
+      ? { publicProfileId: requestedPublicProfileId }
+      : effectiveBusinessProfileId ? { businessProfileId: effectiveBusinessProfileId } : {};
 
   const uploadEvidence = async (spec: EvidenceSpec, file: File) => {
     if (bypassActive) return;
@@ -354,6 +372,18 @@ export default function BusinessVerificationPage() {
           ) : null}
         </CardHeader>
       </Card>
+
+      {missingEmail || missingAddress ? (
+        <Card>
+          <CardContent className="space-y-2 p-6">
+            <p>Email and address verification must also be complete before this business can go public.</p>
+            {missingEmail ? <a href={`/check-email?next=${encodeURIComponent(location)}`} className="block underline">Verify your email</a> : null}
+            {missingAddress ? <a href="/address-verification" className="block underline">Verify your address</a> : null}
+          </CardContent>
+        </Card>
+      ) : documentState === "approved" && data.publicReleaseVerificationSatisfied === false ? (
+        <p role="status">Document review is complete. Account verification still needs to be cleared before this business can go public.</p>
+      ) : null}
 
       {requiredEvidence.length === 0 ? (
         <Card className="border-emerald-500/30">

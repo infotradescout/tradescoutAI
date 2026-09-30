@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- ISSA Build profile content is schema-owned JSON. */
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   ISSA_BUILD_BUSINESS_NAME,
   ISSA_BUILD_PROFILE_SLUG,
@@ -9,6 +9,7 @@ import { buildIssaBuildBusinessContentBlocks, issaBuildBusinessText } from "@sha
 import { LOCATION_CONFIRMED_PER_REQUEST_SERVICE_AREA_MODE } from "@shared/businessDiscoveryAuthority";
 import { businesses, profiles } from "@shared/schema";
 import { db } from "../db";
+import { profileContentBlocksSnapshotPredicate, reloadProfileContentSnapshot } from "../profileContentBlocksConcurrency";
 
 export const ISSA_BUILD_VERIFIED_BUSINESS_SOURCE = "operator_verified_business_profile";
 export const ISSA_BUILD_VERIFICATION_STATUS = "fully_verified";
@@ -48,7 +49,7 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
       .from(businesses)
       .where(eq(businesses.slug, ISSA_BUILD_PROFILE_SLUG))
       .limit(1);
-    const [profile] = await tx
+    let [profile] = await tx
       .select()
       .from(profiles)
       .where(eq(profiles.slug, ISSA_BUILD_PROFILE_SLUG))
@@ -72,7 +73,6 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
     const now = new Date();
     const profileData = recordValue(business.profileData);
     const importExtras = recordValue(profileData.importExtras);
-    const seoMeta = recordValue(profile.seoMeta);
     const sources = Array.isArray(business.sources)
       ? business.sources.filter((value): value is string => typeof value === "string")
       : [];
@@ -111,7 +111,9 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
       })
       .where(eq(businesses.id, business.id));
 
-    await tx
+    profile = await reloadProfileContentSnapshot(tx, profile);
+    const seoMeta = recordValue(profile.seoMeta);
+    const [savedProfile] = await tx
       .update(profiles)
       .set({
         headline: issaBuildBusinessText(profile.headline, ISSA_BUILD_LOCAL_DISCOVERY.headline),
@@ -130,6 +132,8 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
         } as any,
         updatedAt: now,
       })
-      .where(eq(profiles.id, profile.id));
+      .where(and(eq(profiles.id, profile.id), profileContentBlocksSnapshotPredicate(profile)))
+      .returning({ id: profiles.id });
+    if (!savedProfile) throw new Error("ISSA Build profile changed during normalization");
   });
 }

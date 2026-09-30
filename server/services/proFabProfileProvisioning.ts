@@ -2,6 +2,7 @@ import { profileReleaseSeedFields } from "@shared/profileVisibility";
 import { and, eq, sql } from "drizzle-orm";
 import { businesses, contractors, profiles, users } from "@shared/schema";
 import { db } from "../db";
+import { profileContentBlocksSnapshotPredicate } from "../profileContentBlocksConcurrency";
 import { ADMIN_MANAGED_PROFILE_SOURCE, PRO_FAB_PROFILE_SLUG } from "./ownerConfirmedDirectProfile";
 import { isProvisionedProfileAccountControlConfirmed } from "./provisionedProfileAccountControl";
 
@@ -265,7 +266,7 @@ export async function provisionProFabProfile(): Promise<void> {
           .update(profiles)
           .set(profileValues as any)
           .where(
-            and(eq(profiles.id, existingProfile.id), eq(profiles.ownerUserId, String(owner.id)))
+            and(eq(profiles.id, existingProfile.id), eq(profiles.ownerUserId, String(owner.id)), profileContentBlocksSnapshotPredicate(existingProfile))
           )
           .returning()
       : await tx

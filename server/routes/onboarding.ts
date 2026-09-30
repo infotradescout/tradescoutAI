@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
+import { isAuthenticated } from "../auth";
+import { isSameRequestHttpOrigin } from "../utils/requestCors";
 import {
   BusinessIdentityRequiredError,
   BusinessSelectionRequiredError,
@@ -16,6 +18,22 @@ import {
   type OnboardingClaimType,
   type OnboardingLane,
 } from "../services/onboardingService";
+import {
+  PresencePlanError,
+  getOwnedPresencePlan,
+  refreshOwnedPresencePlan,
+  reviewOwnedPresencePlan,
+} from "../services/presencePlanService";
+import {
+  getOwnedPresenceFactReview,
+  submitOwnedPresenceFactDecision,
+} from "../services/presenceFactReview";
+import {
+  applyOwnedPresenceAboutIntent,
+  authorizeOwnedPresenceAboutIntent,
+  getOwnedPresenceAboutPreview,
+  withdrawOwnedPresenceAboutIntent,
+} from "../services/presenceAboutIntent";
 
 const router = Router();
 
@@ -87,6 +105,60 @@ const completeStepSchema = z.object({
   assets: z.array(onboardingAssetSchema).optional(),
   completeOnboarding: z.boolean().optional(),
 });
+
+const reviewPresencePlanSchema = z
+  .object({
+    expectedDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    expectedPlanHash: z.string().regex(/^[a-f0-9]{64}$/),
+    expectedRevision: z.number().int().positive(),
+    sitePath: z.enum(["hosted_new", "preserve_migrate", "keep_external"]),
+  })
+  .strict();
+
+const presenceFactDecisionSchema = z
+  .object({
+    expectedPlanId: z.string().trim().min(1).max(200),
+    expectedProfileId: z.string().trim().min(1).max(200),
+    expectedRevision: z.number().int().positive(),
+    expectedDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    expectedPlanHash: z.string().regex(/^[a-f0-9]{64}$/),
+    valueDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    decision: z.enum(["approve", "reject", "withdraw"]),
+    idempotencyKey: z.string().uuid(),
+  })
+  .strict();
+const presenceFactKeySchema = z
+  .string()
+  .regex(/^(?:description|about|service:(?:[0-9]|[12][0-9]))$/);
+
+const aboutDigestSchema = z.string().regex(/^[a-f0-9]{64}$/);
+const presenceAboutIntentSchema = z
+  .object({
+    expectedPlanId: z.string().trim().min(1).max(200),
+    expectedProfileId: z.string().trim().min(1).max(200),
+    expectedRevision: z.number().int().positive(),
+    expectedDigest: aboutDigestSchema,
+    expectedPlanHash: aboutDigestSchema,
+    factKey: z.enum(["about", "description"]),
+    decisionId: z.string().trim().min(1).max(200),
+    valueDigest: aboutDigestSchema,
+    contentBlocksDigest: aboutDigestSchema,
+    aboutBlockDigest: aboutDigestSchema,
+    aboutBlockId: aboutDigestSchema,
+    previewDigest: aboutDigestSchema,
+    targetMode: z.enum(["create", "replace"]),
+    contentBlocksRevision: z.number().int().positive(),
+    publicationAcknowledged: z.literal(true),
+    replacementAcknowledged: z.boolean(),
+    idempotencyKey: z.string().uuid(),
+  })
+  .strict();
+const withdrawPresenceAboutIntentSchema = z
+  .object({
+    intentId: z.string().uuid(),
+    idempotencyKey: z.string().uuid(),
+  })
+  .strict();
 
 const outcomeBusinessEvidenceSchema = z
   .object({
@@ -284,6 +356,16 @@ router.post("/api/onboarding/complete", async (req, res) => {
     return res.json({ success: true, result });
   } catch (error) {
     if (
+      error instanceof Error &&
+      (error as Error & { code?: string }).code === "PROFILE_CONTENT_BLOCKS_STALE"
+    ) {
+      return res.status(409).json({
+        code: "PROFILE_CONTENT_BLOCKS_STALE",
+        message:
+          "Your profile changed while completing onboarding. Reload the current profile before continuing; your imported draft is preserved.",
+      });
+    }
+    if (
       error instanceof BusinessOwnershipConflictError ||
       error instanceof BusinessSuspendedError
     ) {
@@ -322,4 +404,223 @@ router.get("/api/onboarding/status", async (req, res) => {
   }
 });
 
+function handlePresencePlanError(error: unknown, res: any) {
+  if (error instanceof PresencePlanError) {
+    return res.status(error.status).json({ code: error.code, message: error.message });
+  }
+  if (error instanceof z.ZodError) {
+    return res.status(400).json({ code: "INVALID_PRESENCE_PLAN_INPUT", errors: error.errors });
+  }
+  console.error("[presence.plan] error", error);
+  return res.status(500).json({ message: "Failed to prepare presence plan" });
+}
+
+// Draft planning only. The presence plan routes below never publish a profile, invoke a provider,
+// modify DNS, or authorize a proposed action. The authenticated business owner
+// may select a site path without confirming any imported fact or granting execution.
+router.get("/api/presence/plan", async (req, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+  try {
+    const { storage } = await import("../storage");
+    const plan = await getOwnedPresencePlan(storage as any, userId);
+    return res.json({ success: true, plan });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+router.post("/api/presence/plan/refresh", async (req, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_REFRESH_UNAVAILABLE",
+      message: "End impersonation before preparing this business's presence plan.",
+    });
+  }
+  try {
+    const { storage } = await import("../storage");
+    const plan = await refreshOwnedPresencePlan(storage as any, userId);
+    return res.json({ success: true, plan });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+router.post("/api/presence/plan/review", async (req, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_REVIEW_UNAVAILABLE",
+      message: "End impersonation before selecting this business's site path.",
+    });
+  }
+  try {
+    const parsed = reviewPresencePlanSchema.parse(req.body ?? {});
+    const { storage } = await import("../storage");
+    const plan = await reviewOwnedPresencePlan(storage as any, {
+      ownerUserId: userId,
+      expectedDigest: parsed.expectedDigest,
+      expectedPlanHash: parsed.expectedPlanHash,
+      expectedRevision: parsed.expectedRevision,
+      sitePath: parsed.sitePath,
+    });
+    return res.json({ success: true, plan });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+// Private factual review. A decision records this owner's assessment of one
+// exact cited value; it cannot publish, alter a profile, or grant provider access.
+router.get("/api/presence/facts", async (req, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_FACT_REVIEW_UNAVAILABLE",
+      message: "End impersonation before reviewing this business's facts.",
+    });
+  }
+  res.set("Cache-Control", "private, no-store");
+  try {
+    const { storage } = await import("../storage");
+    const review = await getOwnedPresenceFactReview(storage as any, userId);
+    return res.json({ success: true, review });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+router.post("/api/presence/facts/:factKey/decision", async (req, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_FACT_REVIEW_UNAVAILABLE",
+      message: "End impersonation before reviewing this business's facts.",
+    });
+  }
+  res.set("Cache-Control", "private, no-store");
+  try {
+    const factKey = presenceFactKeySchema.parse(req.params.factKey);
+    const parsed = presenceFactDecisionSchema.parse(req.body ?? {});
+    const { storage } = await import("../storage");
+    const decision = await submitOwnedPresenceFactDecision(storage as any, {
+      ownerUserId: userId,
+      factKey,
+      ...parsed,
+    });
+    return res.json({ success: true, decision });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+// Preview and fresh consent remain private. Only the separate owner apply
+// operation can publish the exact version-bound About change.
+router.get("/api/presence/about/preview", isAuthenticated, async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  const ownerUserId = getUserId(req);
+  if (!ownerUserId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_ABOUT_UNAVAILABLE",
+      message: "End impersonation before reviewing this business's About change.",
+    });
+  }
+  try {
+    const { storage } = await import("../storage");
+    const preview = await getOwnedPresenceAboutPreview(storage as any, ownerUserId);
+    return res.json({ success: true, preview });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+router.post("/api/presence/about/intent", isAuthenticated, async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  const ownerUserId = getUserId(req);
+  if (!ownerUserId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_ABOUT_UNAVAILABLE",
+      message: "End impersonation before authorizing this business's About change.",
+    });
+  }
+  if (!isSameRequestHttpOrigin(req, req.get("origin"))) {
+    return res.status(403).json({
+      code: "PRESENCE_ABOUT_ORIGIN_REQUIRED",
+      message: "Open this form from the same TradeScout site before continuing.",
+    });
+  }
+  try {
+    const parsed = presenceAboutIntentSchema.parse(req.body ?? {});
+    const { storage } = await import("../storage");
+    const intent = await authorizeOwnedPresenceAboutIntent(storage as any, {
+      ownerUserId,
+      ...parsed,
+    });
+    return res.json({ success: true, intent });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+router.post("/api/presence/about/intent/withdraw", isAuthenticated, async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  const ownerUserId = getUserId(req);
+  if (!ownerUserId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_ABOUT_UNAVAILABLE",
+      message: "End impersonation before withdrawing this business's About authorization.",
+    });
+  }
+  if (!isSameRequestHttpOrigin(req, req.get("origin"))) {
+    return res.status(403).json({
+      code: "PRESENCE_ABOUT_ORIGIN_REQUIRED",
+      message: "Open this form from the same TradeScout site before continuing.",
+    });
+  }
+  try {
+    const parsed = withdrawPresenceAboutIntentSchema.parse(req.body ?? {});
+    const intent = await withdrawOwnedPresenceAboutIntent(
+      ownerUserId,
+      parsed.intentId,
+      parsed.idempotencyKey
+    );
+    return res.json({ success: true, intent });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+router.post("/api/presence/about/intent/apply", isAuthenticated, async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  const ownerUserId = getUserId(req);
+  if (!ownerUserId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_ABOUT_UNAVAILABLE",
+      message: "End impersonation before publishing this business's About change.",
+    });
+  }
+  if (!isSameRequestHttpOrigin(req, req.get("origin"))) {
+    return res.status(403).json({
+      code: "PRESENCE_ABOUT_ORIGIN_REQUIRED",
+      message: "Open this form from the same TradeScout site before continuing.",
+    });
+  }
+  try {
+    const parsed = withdrawPresenceAboutIntentSchema.parse(req.body ?? {});
+    const { storage } = await import("../storage");
+    const intent = await applyOwnedPresenceAboutIntent(storage as any, { ownerUserId, ...parsed });
+    return res.json({ success: true, intent });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
 export { router as onboardingRouter };

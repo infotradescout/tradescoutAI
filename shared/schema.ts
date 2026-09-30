@@ -313,7 +313,7 @@ export const userProfiles = pgTable(
 
     // Profile intent and type
     userIntent: userIntentEnum("user_intent").notNull(), // 'person' or 'business'
-    businessType: profileBusinessTypeEnum("profile_business_type"), // 'service_provider' or 'seller' (null if person)
+    businessType: profileBusinessTypeEnum("profile_business_type"), // Null for people or unclassified business identities.
 
     // Tags/specializations
     serviceTags: text("service_tags").array().default([]), // e.g., ['electrician', 'hvac']
@@ -1108,6 +1108,7 @@ export const profiles = pgTable(
         }>
       >()
       .default(sql`'[]'::jsonb`),
+    contentBlocksRevision: integer("content_blocks_revision").notNull().default(1),
     ctaConfig: jsonb("cta_config")
       .$type<{
         primary?: { label: string; kind: "call" | "email" | "message" | "link"; value: string };
@@ -1140,6 +1141,231 @@ export const profiles = pgTable(
     index("profile_status_idx").on(table.status),
   ]
 );
+
+// Inert, owner-reviewed work plan for a canonical business/profile. This is
+// separate from profile content and confers no permission to publish or write
+// to an external account. The source evidence remains in onboardingOutcome.
+export const businessPresencePlans = pgTable(
+  "business_presence_plans",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    businessId: varchar("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    profileId: varchar("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    revision: integer("revision").notNull().default(1),
+    evidenceDigest: varchar("evidence_digest", { length: 64 }).notNull(),
+    planHash: varchar("plan_hash", { length: 64 }).notNull(),
+    plan: jsonb("plan").$type<Record<string, unknown>>().notNull(),
+    sitePath: varchar("site_path", { length: 32 }),
+    sitePathSelectedBy: varchar("site_path_selected_by").references(() => users.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    // A monotonic selection identity survives same-millisecond A→B→A choices.
+    sitePathReviewEpoch: integer("site_path_review_epoch").notNull().default(0),
+    customerTaskReconciledRevision: integer("customer_task_reconciled_revision"),
+    customerTaskReconciledSitePath: varchar("customer_task_reconciled_site_path", { length: 32 }),
+    // A decision changes review-task eligibility without changing the inert plan hash.
+    factReviewEpoch: integer("fact_review_epoch").notNull().default(0),
+    factTaskReconciledRevision: integer("fact_task_reconciled_revision"),
+    factTaskReconciledEpoch: integer("fact_task_reconciled_epoch"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("business_presence_plan_owner_business_uq").on(table.ownerUserId, table.businessId),
+    index("business_presence_plan_profile_idx").on(table.profileId),
+  ]
+);
+
+// Owner decisions are private, append-only review events. Claim values and source
+// URLs remain in the canonical onboarding outcome, never in this table.
+export const businessPresenceFactDecisions = pgTable(
+  "business_presence_fact_decisions",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    planId: varchar("plan_id")
+      .notNull()
+      .references(() => businessPresencePlans.id, { onDelete: "cascade" }),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    businessId: varchar("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    profileId: varchar("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    revision: integer("revision").notNull(),
+    evidenceDigest: varchar("evidence_digest", { length: 64 }).notNull(),
+    planHash: varchar("plan_hash", { length: 64 }).notNull(),
+    factKey: varchar("fact_key", { length: 64 }).notNull(),
+    valueDigest: varchar("value_digest", { length: 64 }).notNull(),
+    decision: varchar("decision", { length: 16 }).notNull(),
+    decisionEpoch: integer("decision_epoch").notNull(),
+    idempotencyKey: varchar("idempotency_key", { length: 64 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("presence_fact_decision_request_uq").on(
+      table.ownerUserId,
+      table.businessId,
+      table.idempotencyKey
+    ),
+    uniqueIndex("presence_fact_decision_epoch_uq").on(table.planId, table.decisionEpoch),
+    index("presence_fact_decision_current_idx").on(
+      table.planId,
+      table.revision,
+      table.factKey,
+      table.decisionEpoch
+    ),
+  ]
+);
+
+// Customer-scoped, hash-only intent to apply one approved About fact later.
+// Normal service changes only insert events; parent erasure may cascade rows.
+export const businessPresenceAboutIntentEvents = pgTable(
+  "business_presence_about_intent_events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    // Allocated at insert, after the per-business advisory lock. Unlike
+    // transaction-start timestamps, this preserves authorization order.
+    eventSequence: bigserial("event_sequence", { mode: "number" }).notNull(),
+    eventKind: varchar("event_kind", { length: 16 }).notNull(),
+    authorizationId: varchar("authorization_id", { length: 64 }),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    businessId: varchar("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    profileId: varchar("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    planId: varchar("plan_id")
+      .notNull()
+      .references(() => businessPresencePlans.id, { onDelete: "cascade" }),
+    revision: integer("revision").notNull(),
+    evidenceDigest: varchar("evidence_digest", { length: 64 }).notNull(),
+    planHash: varchar("plan_hash", { length: 64 }).notNull(),
+    factKey: varchar("fact_key", { length: 16 }).notNull(),
+    valueDigest: varchar("value_digest", { length: 64 }).notNull(),
+    decisionId: varchar("decision_id")
+      .notNull()
+      .references(() => businessPresenceFactDecisions.id, { onDelete: "cascade" }),
+    decisionEpoch: integer("decision_epoch").notNull(),
+    contentBlocksDigest: varchar("content_blocks_digest", { length: 64 }).notNull(),
+    aboutBlockDigest: varchar("about_block_digest", { length: 64 }).notNull(),
+    aboutBlockId: varchar("about_block_id", { length: 64 }).notNull(),
+    previewDigest: varchar("preview_digest", { length: 64 }).notNull(),
+    replacementAcknowledged: boolean("replacement_acknowledged").notNull(),
+    // Nullable bindings distinguish legacy inert intents from fresh publication consent.
+    targetMode: varchar("target_mode", { length: 16 }),
+    contentBlocksRevision: integer("content_blocks_revision"),
+    profileTargetIdentity: jsonb("profile_target_identity")
+      .$type<import("./profileTargetIdentity").ProfileTargetIdentity>(),
+    publicationAcknowledged: boolean("publication_acknowledged").notNull().default(false),
+    appliedContentBlocksRevision: integer("applied_content_blocks_revision"),
+    appliedContentBlocksDigest: varchar("applied_content_blocks_digest", { length: 64 }),
+    idempotencyKey: varchar("idempotency_key", { length: 64 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("presence_about_intent_sequence_uq").on(table.eventSequence),
+    uniqueIndex("presence_about_intent_request_uq").on(
+      table.ownerUserId,
+      table.businessId,
+      table.idempotencyKey
+    ),
+    index("presence_about_intent_current_idx").on(
+      table.planId,
+      table.revision,
+      table.eventSequence
+    ),
+    index("presence_about_intent_withdraw_idx").on(table.authorizationId, table.eventKind),
+    uniqueIndex("presence_about_intent_applied_uq")
+      .on(table.authorizationId)
+      .where(sql`${table.eventKind} = 'apply'`),
+  ]
+);
+
+// A private customer choice task. Its version is bound to one inert presence
+// plan; neither the task nor a reminder grants publication authority.
+export const businessPresenceCustomerTasks = pgTable(
+  "business_presence_customer_tasks",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    businessId: varchar("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    profileId: varchar("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    planId: varchar("plan_id")
+      .notNull()
+      .references(() => businessPresencePlans.id, { onDelete: "cascade" }),
+    planHash: varchar("plan_hash", { length: 64 }).notNull(),
+    evidenceDigest: varchar("evidence_digest", { length: 64 }).notNull(),
+    revision: integer("revision").notNull(),
+    kind: varchar("kind", { length: 32 }).notNull().default("select_site_path"),
+    status: varchar("status", { length: 32 }).notNull().default("waiting_customer"),
+    firstWaitAt: timestamp("first_wait_at", { withTimezone: true }).notNull(),
+    reminderCount: integer("reminder_count").notNull().default(0),
+    lastReminderAt: timestamp("last_reminder_at", { withTimezone: true }),
+    nextReminderAt: timestamp("next_reminder_at", { withTimezone: true }),
+    failureCount: integer("failure_count").notNull().default(0),
+    retryAt: timestamp("retry_at", { withTimezone: true }),
+    lastErrorCode: varchar("last_error_code", { length: 80 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("presence_customer_task_version_uq").on(
+      table.ownerUserId,
+      table.businessId,
+      table.profileId,
+      table.planHash,
+      table.revision,
+      table.kind
+    ),
+    index("presence_customer_task_due_idx").on(table.status, table.nextReminderAt),
+    index("presence_customer_task_retry_idx").on(table.status, table.retryAt),
+    index("presence_customer_task_plan_status_idx").on(table.planId, table.status),
+    index("presence_customer_task_family_idx").on(
+      table.ownerUserId,
+      table.businessId,
+      table.profileId,
+      table.kind,
+      table.createdAt
+    ),
+  ]
+);
+
+export const businessPresenceTaskRuntime = pgTable("business_presence_task_runtime", {
+  id: varchar("id").primaryKey(),
+  sweepCursor: varchar("sweep_cursor"),
+  pendingCursor: varchar("pending_cursor"),
+  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+  lastSuccessfulTickAt: timestamp("last_successful_tick_at", { withTimezone: true }),
+  lastFailureAt: timestamp("last_failure_at", { withTimezone: true }),
+  lastErrorCode: varchar("last_error_code", { length: 80 }),
+});
 
 // Public-profile actions are intentionally separate from CVS, trust snapshots,
 // and exposure/ranking inputs. A Like is lightweight appreciation; a Favorite
