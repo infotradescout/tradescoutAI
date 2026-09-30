@@ -4,6 +4,8 @@ import request from "supertest";
 import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME } from "../../shared/exchangeListingRules";
 import { renderPublicExchangeListing, renderPublicExchangeDirectory, publicExchangeItemSchema, publicExchangePrice, exchangeSitemapXml, exchangeSitemapIndexXml, exchangeListingMarkdown } from "../publicExchangeDiscoveryHtml";
 import type { PublicExchangeRecord } from "../services/exchangePublicDiscovery";
+import { stonePublicReferenceSizes } from "../../shared/exchangeStonePublicReference";
+import { stoneInquiryMessage } from "../../shared/exchangeStoneBuyerFlow";
 vi.mock("../services/exchangePublicDiscovery", () => ({
   readPublicExchangeListing: vi.fn(), readPublicExchangePage: vi.fn(), readPublicExchangeIndex: vi.fn(), PUBLIC_EXCHANGE_SITEMAP_PAGE_SIZE: 1000,
   isPublicDiscoveryCategory: (value: string) => ["tools", "furniture", "building-materials", "vehicles", "electronics"].includes(value),
@@ -19,6 +21,19 @@ function listing(category = "tools", seller = "ordinary-seller"): PublicExchange
     publicDetailPath: `/exchange/${category}/${seller}-${category}`, sourceType: "marketplace_listing", status: "active", isLocalPickupOnly: true };
 }
 describe("Shared public Exchange discovery", () => {
+  it("uses the approved Honey reference consistently in public totals, facts and inquiry draft", () => {
+    const item = { ...listing("building-materials"), id: "tradescout-stone-honey-onyx", title: "Honey Onyx", price: 47.25,
+      specifications: { commerceChannel: "tradescout_stone_retail", priceUnit: "sqft" } };
+    expect(stonePublicReferenceSizes(item)).toBe("121x65");
+    const html = renderPublicExchangeListing(template, item);
+    expect(html).toContain("$2,580.70"); expect(html).toContain("121x65");
+    expect(stoneInquiryMessage(item, "availability")).toContain("$2,580.70");
+    expect(publicExchangeItemSchema(item)).not.toHaveProperty("offers");
+    const { price: _omittedPrice, ...unpriced } = item;
+    expect(stonePublicReferenceSizes(unpriced)).toBeUndefined();
+    expect(stonePublicReferenceSizes({ ...item, specifications: { ...item.specifications, referenceSizesInches: "100x60" } })).toBe("100x60");
+    for (const other of [{ ...item, price: 40 }, { ...item, id: "tradescout-stone-other" }, { ...item, specifications: { ...item.specifications, commerceChannel: "private" } }, { ...item, specifications: { ...item.specifications, priceUnit: "slab" } }]) expect(stonePublicReferenceSizes(other)).toBeUndefined();
+  });
   for (const category of Object.keys(EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME)) {
     for (const seller of ["individual-free", "business-premium"]) it(`${category}: ${seller} gets the same indexable entity HTML`, () => {
       const item = listing(category, seller); const html = renderPublicExchangeListing(template, item);
@@ -28,6 +43,24 @@ describe("Shared public Exchange discovery", () => {
       expect(html).toContain('application/ld+json'); expect(html).toContain('/exchange/llms.txt');
     });
   }
+  it("keeps retail reference totals distinct from a fixed slab Offer and exposes purchase details", () => {
+    // Synthetic dimensions prove presentation arithmetic, not actual Honey Onyx inventory.
+    const item = { ...listing("building-materials"), id: "tradescout-stone-honey-onyx",
+      title: "Honey Onyx | TradeScout", price: 47.25, sellerName: "TradeScout", isLocalPickupOnly: false,
+      publicDetailPath: "/exchange/building-materials/tradescout-stone-honey-onyx",
+      specifications: { commerceChannel: "tradescout_stone_retail", priceUnit: "sqft", material: "Onyx", referenceSizesInches: "120x72" } };
+    const html = renderPublicExchangeListing(template, item);
+    expect(html).toContain("Estimated full slab material price: $2,835.00");
+    expect(html).toContain("$47.25 / sq ft");
+    expect(html).toContain("120x72");
+    expect(html).toContain("Listed by TradeScout");
+    expect(html).toContain("Delivery, fabrication and installation are separate.");
+    expect(html).toContain("Confirm the selected slab and available quantity before purchase");
+    expect(html).toContain('href="/exchange/building-materials/tradescout-stone-honey-onyx?inquiry=availability"');
+    expect(publicExchangeItemSchema(item)).not.toHaveProperty("offers");
+    expect(html).not.toContain("InStock");
+    expect(html).not.toContain("noindex");
+  });
   it("does not invent an InStock assertion from an active listing", () => {
     expect((publicExchangeItemSchema(listing()).offers as any).availability).toBeUndefined();
     expect((publicExchangeItemSchema({ ...listing(), inStock: false }).offers as any).availability).toBe("https://schema.org/OutOfStock");
