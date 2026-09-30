@@ -42,6 +42,8 @@ import {
   type CanonicalProfileItems,
 } from "@/components/profile/PublicProfileItems";
 import { PublicProfileTrustActions } from "@/components/profile/PublicProfileTrustActions";
+import ConnectedPublicProfiles from "@/components/profile/ConnectedPublicProfiles";
+import { readProfileEcosystemPublicLinks } from "@shared/ecosystemPublicLink";
 import { ProfileBookingRequestDialog } from "@/components/profile/ProfileBookingRequestDialog";
 import { applyProfileSiteContentAdapter } from "@/data/profileSiteContentAdapters";
 import {
@@ -1589,6 +1591,7 @@ export default function ProfileSiteView() {
     tone: "light" | "dark",
     density: "default" | "compact" = "default"
   ) => (
+    <>
     <PublicProfileTrustActions
       profileSlug={profile.slug}
       profileName={displayName}
@@ -1601,6 +1604,8 @@ export default function ProfileSiteView() {
       tone={tone}
       density={density}
     />
+    <ConnectedPublicProfiles profileSlug={profile.slug} references={readProfileEcosystemPublicLinks(storedContentBlocks)} />
+    </>
   );
   const readProfileBlockText = (blockType: "about" | "hero") =>
     contentBlocks

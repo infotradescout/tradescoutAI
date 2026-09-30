@@ -25,6 +25,7 @@ import {
 } from "@shared/colorPresets";
 import { StateCountySelector } from "@/components/state-county-selector";
 import ProfileContentVersionSummary from "@/components/profile/ProfileContentVersionSummary";
+import ProfileEcosystemLinksEditor from "@/components/profile/ProfileEcosystemLinksEditor";
 import {
   listSelectableProfileSiteTemplates,
   patchHeroBlock,
@@ -1493,6 +1494,8 @@ export default function ProfileSiteEditor() {
               </div>
             ) : null}
 
+            {Array.isArray(parsedPayload?.contentBlocks) ? <ProfileEcosystemLinksEditor blocks={parsedPayload.contentBlocks}
+              onChange={blocks => setContentBlocksText(JSON.stringify(blocks, null, 2))} /> : null}
             <div className="space-y-2 rounded-lg border border-white/10 p-3">
               <div className="flex items-center justify-between gap-3">
                 <Label className="text-white/70">Advanced JSON</Label>

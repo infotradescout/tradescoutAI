@@ -1,4 +1,6 @@
 import { publicRecommendationConditions } from "../storage/repositories/recommendations";
+import { registerEcosystemPublicLinkReceiverRoutes } from "./ecosystem-public-links";
+import { readMealScoutPublicLinkEnvelope } from "../services/ecosystemPublicLinkReceiver";
 import { Router } from "express";
 import { z } from "zod";
 import { isAuthenticated } from "../auth";
@@ -2773,6 +2775,12 @@ async function readPublicProfileTrustActions(
 }
 
 // Public website read (canonical): returns public Profile + public Business subset if linked.
+registerEcosystemPublicLinkReceiverRoutes(router, {
+  // This existing reader enforces canonical public exposure and target authority.
+  getPublicProfile: slug => storage.getProfileBySlugPublic(slug),
+  readEnvelope: readMealScoutPublicLinkEnvelope,
+  enabled: () => !["0", "false", "off", "disabled"].includes(String(process.env.TRADESCOUT_ECOSYSTEM_LINKS_ENABLED ?? "true").toLowerCase()),
+});
 router.get("/api/u/:slug", async (req, res) => {
   try {
     const slug = String(req.params.slug);
