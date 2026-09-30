@@ -13,6 +13,7 @@ import {
 } from "@shared/issaBuildPageContent";
 import { ISSA_BUILD_MANAGED_CONTACT } from "@shared/issaBuildManagedContact";
 import { db } from "../db";
+import { profileContentBlocksSnapshotPredicate, reloadProfileContentSnapshot } from "../profileContentBlocksConcurrency";
 
 export const ISSA_BUILD_PROFILE_PROVISIONING_SOURCE = "operator_confirmed_business_profile";
 export const ISSA_BUILD_MANAGED_CONTACT_SOURCE = "tradescout_managed_contact";
@@ -147,7 +148,7 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       .from(profiles)
       .where(eq(profiles.slug, ISSA_BUILD_LEGACY_PROFILE_SLUG))
       .limit(1);
-    const existingProfile = existingProfileByCanonical || existingProfileByLegacy;
+    let existingProfile = existingProfileByCanonical || existingProfileByLegacy;
 
     const existingBusinessOwnerId = String(existingBusiness?.ownerUserId || "").trim();
     const existingProfileOwnerId = String(existingProfile?.ownerUserId || "").trim();
@@ -345,6 +346,7 @@ export async function provisionIssaBuildProfile(): Promise<void> {
         .where(eq(contractors.id, recommendationTarget.id));
     }
 
+    if (existingProfile) existingProfile = await reloadProfileContentSnapshot(tx, existingProfile);
     const existingSeo = recordValue(existingProfile?.seoMeta);
     const profileValues = {
       ownerUserId: profileOwnerUserId,
@@ -386,7 +388,7 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       ? await tx
           .update(profiles)
           .set(profileValues as any)
-          .where(eq(profiles.id, existingProfile.id))
+          .where(and(eq(profiles.id, existingProfile.id), profileContentBlocksSnapshotPredicate(existingProfile)))
           .returning()
       : await tx
           .insert(profiles)

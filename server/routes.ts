@@ -231,15 +231,17 @@ import {
 import { createImportedOwnerProjectionAtomically } from "./services/adminBusinessOwnerImportProjection";
 import { mutateExactProfileVisibilityAtomically } from "./services/profileVisibilityMutation";
 import {
+  resolveOwnedPublicVerificationProfile,
+  reviewBusinessVerification,
+  submitOwnedBusinessVerification,
+} from "./services/businessVerificationTargetBridge";
+import {
   adminBusinessVerificationDecisionSchema,
   buildVerificationFieldReviewState,
   businessVerificationFieldSchema,
-  deriveOverallBusinessVerificationStatus,
   getStoredVerificationDocumentKey,
   isOwnedPrivateObjectKey,
-  mergeVerificationSubmission,
   profileVerificationSubmissionSchema,
-  recordVerificationDecision,
   sanitizeVerificationSubmissions,
   selectOwnedVerificationProfile,
 } from "./services/businessVerificationWorkflow";
@@ -2990,13 +2992,26 @@ export async function registerRoutes(app: any) {
         typeof req.query.businessProfileId === "string"
           ? req.query.businessProfileId.trim()
           : undefined;
+      const requestedPublicProfileId =
+        typeof req.query.publicProfileId === "string" ? req.query.publicProfileId.trim() : undefined;
+      if (req.query.publicProfileId !== undefined && (!requestedPublicProfileId || requestedPublicProfileId.length > 128)) {
+        return res.status(400).json({ message: "Invalid publicProfileId" });
+      }
+      if (req.query.businessProfileId !== undefined && !requestedBusinessProfileId) {
+        return res.status(400).json({ message: "Invalid businessProfileId" });
+      }
+      if (requestedPublicProfileId && requestedBusinessProfileId) {
+        return res.status(400).json({ message: "Choose one verification target identifier" });
+      }
       if (requestedBusinessProfileId && requestedBusinessProfileId.length > 128) {
         return res.status(400).json({ message: "Invalid businessProfileId" });
       }
 
       const profiles = await loadOwnedVerificationProfiles(userId);
-      const profile = selectVerificationProfile(profiles, requestedBusinessProfileId);
-      if (requestedBusinessProfileId && !profile) {
+      const profile = requestedPublicProfileId
+        ? await resolveOwnedPublicVerificationProfile(db, { userId, publicProfileId: requestedPublicProfileId })
+        : selectVerificationProfile(profiles, requestedBusinessProfileId);
+      if ((requestedBusinessProfileId || requestedPublicProfileId) && !profile) {
         return res.status(404).json({ message: "Business profile not found" });
       }
 
@@ -3029,6 +3044,14 @@ export async function registerRoutes(app: any) {
 
       return res.json({
         profileId: profile.id,
+        publicProfileId: requestedPublicProfileId || null,
+        ...(requestedPublicProfileId ? { publicReleaseVerificationSatisfied:
+          user.verificationStatus !== "suspended" &&
+          (user.verifiedBadge === true || user.verificationStatus === "approved") } : {}),
+        ...(requestedPublicProfileId ? {
+          publicReleaseVerificationSatisfied: String(user.verificationStatus || "").toLowerCase() !== "suspended" &&
+            (user.verifiedBadge === true || String(user.verificationStatus || "").toLowerCase() === "approved"),
+        } : {}),
         displayName: profile.displayName || null,
         userIntent: profile.userIntent,
         businessType: profile.businessType,
@@ -3060,77 +3083,23 @@ export async function registerRoutes(app: any) {
         });
       }
 
-      const user = await storage.getUser(userId);
-      if (!user) return res.status(404).json({ message: "User not found" });
-      const profiles = await loadOwnedVerificationProfiles(userId);
-      const profile = selectVerificationProfile(profiles, parsed.data.businessProfileId);
-      if (!profile) return res.status(404).json({ message: "Business profile not found" });
-
-      const privateDocumentFields = [
-        ["licenseDocObjectKey", parsed.data.licenseDocObjectKey],
-        ["insuranceDocObjectKey", parsed.data.insuranceDocObjectKey],
-        ["taxDocumentObjectKey", parsed.data.taxDocumentObjectKey],
-        ["businessRegistrationDocObjectKey", parsed.data.businessRegistrationDocObjectKey],
-      ] as const;
-      for (const [field, objectKey] of privateDocumentFields) {
-        if (objectKey && !isOwnedPrivateObjectKey(objectKey, userId)) {
-          return res.status(400).json({ message: `${field} is not an owned private object key` });
-        }
-      }
-
-      const requirements = await computeVerificationRequirements(
-        profile.userIntent as "person" | "business",
-        (profile.businessType as "service_provider" | "seller" | "generic" | null) || undefined,
-        profile.serviceTags || [],
-        profile.sellerTags || []
+      const result = await db.transaction((tx: any) =>
+        submitOwnedBusinessVerification(tx, { userId, input: parsed.data })
       );
-      const submittedAt = new Date().toISOString();
-      const nextSubmissions = mergeVerificationSubmission(
-        (profile as any).verificationSubmissions || {},
-        parsed.data,
-        submittedAt
-      );
-      const nextValues: Record<string, unknown> = {
-        verificationRequirements: requirements,
-        verificationSubmissions: nextSubmissions,
-        verificationStatus: "pending",
-        updatedAt: new Date(),
-      };
-      if (parsed.data.licenseNumber || parsed.data.licenseDocObjectKey) {
-        nextValues.license_verified = false;
-      }
-      if (parsed.data.insuranceDocObjectKey) nextValues.insurance_verified = false;
-      if (parsed.data.taxIdLast4 || parsed.data.taxDocumentObjectKey) {
-        nextValues.tax_id_verified = false;
-      }
-      if (parsed.data.businessRegistrationDocObjectKey) {
-        nextValues.business_registration_verified = false;
-      }
-
-      const [updated] = await db
-        .update(userProfiles)
-        .set(nextValues as any)
-        .where(and(eq(userProfiles.id, profile.id), eq(userProfiles.userId, userId)))
-        .returning();
-      if (!updated) return res.status(404).json({ message: "Business profile not found" });
-
-      const status = verificationStatusForProfile(updated, user);
       const verificationBypassActive = hasRequestPrivilegedVerificationBypass(req);
       return res.json({
-        profileId: updated.id,
-        displayName: updated.displayName || null,
-        requirements,
-        status,
-        fieldReview: buildVerificationFieldReviewState({
-          requirements,
-          status,
-          submissions: nextSubmissions,
-        }),
-        submissions: sanitizeVerificationSubmissions(nextSubmissions),
+        profileId: result.profile.id,
+        publicProfileId: parsed.data.publicProfileId || null,
+        displayName: result.profile.displayName || null,
+        requirements: result.requirements,
+        status: result.status,
+        fieldReview: result.fieldReview,
+        submissions: sanitizeVerificationSubmissions(result.submissions),
         verificationStatus: verificationBypassActive ? "not_required" : "pending",
         verificationBypassActive,
       });
     } catch (error) {
+      if ((error as any)?.status) return res.status((error as any).status).json({ message: (error as Error).message });
       console.error("Error submitting verification info:", error);
       return res.status(500).json({ message: "Failed to submit verification info" });
     }
@@ -4072,7 +4041,8 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Refresh only private recommendation evidence; email confirmation never approves publication.
+      // Email completion can satisfy already reviewed business requirements;
+      // it never supplies a document review or publishes a Profile.
       await storage.verifyPendingRecommendationsForUser(userId).catch((error) => {
         // The confirmation is already durable and its token consumed. Private
         // recommendation reads and moderation retry this evidence refresh.
@@ -18327,94 +18297,21 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         ).trim();
         if (!reviewerId) return res.status(401).json({ message: "Unauthorized" });
 
-        const [profile] = await db
-          .select()
-          .from(userProfiles)
-          .where(eq(userProfiles.id, profileId))
-          .limit(1);
-        if (!profile) return res.status(404).json({ message: "Profile not found" });
-
-        const requirements = await computeVerificationRequirements(
-          profile.userIntent as "person" | "business",
-          (profile.businessType as "service_provider" | "seller" | "generic" | null) || undefined,
-          profile.serviceTags || [],
-          profile.sellerTags || []
+        const result = await db.transaction((tx: any) =>
+          reviewBusinessVerification(tx, { verificationProfileId: profileId, reviewerId, decision: parsed.data })
         );
-        const { field, decision, rejectionReason } = parsed.data;
-        if (!requirements[field]) {
-          return res.status(400).json({ message: "This verification field is not required" });
-        }
-
-        const columnMap = {
-          license: "license_verified",
-          insurance: "insurance_verified",
-          tax_id: "tax_id_verified",
-          business_registration: "business_registration_verified",
-        } as const;
-
-        const reviewedAt = new Date().toISOString();
-        const nextSubmissions = recordVerificationDecision({
-          submissions: (profile as any).verificationSubmissions || {},
-          field,
-          decision,
-          reviewerId,
-          reviewedAt,
-          rejectionReason,
-        });
-        const nextStatus = {
-          email: Boolean((profile as any).email_verified),
-          address: Boolean((profile as any).address_verified),
-          license:
-            field === "license"
-              ? decision === "approved"
-              : Boolean((profile as any).license_verified),
-          insurance:
-            field === "insurance"
-              ? decision === "approved"
-              : Boolean((profile as any).insurance_verified),
-          tax_id:
-            field === "tax_id"
-              ? decision === "approved"
-              : Boolean((profile as any).tax_id_verified),
-          business_registration:
-            field === "business_registration"
-              ? decision === "approved"
-              : Boolean((profile as any).business_registration_verified),
-        };
-        const fieldReview = buildVerificationFieldReviewState({
-          requirements,
-          status: nextStatus,
-          submissions: nextSubmissions,
-          includeReviewer: true,
-        });
-        const overallStatus = deriveOverallBusinessVerificationStatus({
-          requirements,
-          fieldReviewState: fieldReview,
-        });
-        const [updated] = await db
-          .update(userProfiles)
-          .set({
-            [columnMap[field]]: decision === "approved",
-            verificationRequirements: requirements,
-            verificationSubmissions: nextSubmissions,
-            verificationStatus: overallStatus,
-            updatedAt: new Date(),
-          } as any)
-          .where(eq(userProfiles.id, profileId))
-          .returning();
-        if (!updated) return res.status(404).json({ message: "Profile not found" });
-
         return res.json({
           profile: {
-            id: updated.id,
-            verificationStatus: overallStatus,
-            verificationRequirements: requirements,
-            status: nextStatus,
-            fieldReview,
-            submissions: sanitizeVerificationSubmissions(nextSubmissions),
+            id: result.profile.id,
+            verificationStatus: result.overallStatus,
+            verificationRequirements: result.requirements,
+            status: result.status,
+            fieldReview: result.fieldReview,
+            submissions: sanitizeVerificationSubmissions(result.submissions),
           },
         });
       } catch (error) {
+        if ((error as any)?.status) return res.status((error as any).status).json({ message: (error as Error).message });
         console.error("Error updating profile verification:", error);
         res.status(500).json({ message: "Failed to update profile verification" });
       }

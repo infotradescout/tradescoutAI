@@ -3,6 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { businesses, contractors, profiles, users } from "@shared/schema";
 import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
 import { db } from "../db";
+import { profileContentBlocksSnapshotPredicate } from "../profileContentBlocksConcurrency";
 import { JRS_PROFILE_SLUG, OWNER_CONFIRMED_PROFILE_SOURCE } from "./ownerConfirmedDirectProfile";
 import { isProvisionedProfileAccountControlConfirmed } from "./provisionedProfileAccountControl";
 
@@ -260,7 +261,7 @@ export async function provisionJrsAutoGlassProfile(): Promise<void> {
           .update(profiles)
           .set(profileValues as any)
           .where(
-            and(eq(profiles.id, existingProfile.id), eq(profiles.ownerUserId, String(owner.id)))
+            and(eq(profiles.id, existingProfile.id), eq(profiles.ownerUserId, String(owner.id)), profileContentBlocksSnapshotPredicate(existingProfile))
           )
           .returning()
       : await tx

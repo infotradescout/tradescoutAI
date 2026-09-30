@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,14 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { readProfileIdentity, sameProfileIdentity, sameProfileTargetAsidePublication, type ProfileIdentity } from "@/lib/profileIdentity";
 import {
   COLOR_PRESETS,
   getPresetNames,
   getProfileBrandColorsForPreset,
 } from "@shared/colorPresets";
 import { StateCountySelector } from "@/components/state-county-selector";
+import ProfileContentVersionSummary from "@/components/profile/ProfileContentVersionSummary";
 import {
   listSelectableProfileSiteTemplates,
   patchHeroBlock,
@@ -45,13 +47,41 @@ type OwnedProfile = {
 };
 
 type ProfileDetail = OwnedProfile & {
+  ownerUserId: string;
   headline: string | null;
   businessId: string | null;
   contentBlocks: any;
+  contentBlocksRevision: number;
   ctaConfig: any;
   seoMeta: any;
-  publiclyReleased?: boolean;
+  publiclyReleased: boolean;
 };
+
+function editableSeoMeta(value: unknown): Record<string, unknown> {
+  const source = value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown> : {};
+  return {
+    ...(typeof source.title === "string" ? { title: source.title } : {}),
+    ...(typeof source.description === "string" ? { description: source.description } : {}),
+    ...(typeof source.imageUrl === "string" ? { imageUrl: source.imageUrl } : {}),
+    ...(typeof source.imageWidth === "number" ? { imageWidth: source.imageWidth } : {}),
+    ...(typeof source.imageHeight === "number" ? { imageHeight: source.imageHeight } : {}),
+    ...(typeof source.faviconUrl === "string" ? { faviconUrl: source.faviconUrl } : {}),
+  };
+}
+
+function sparseObjectPatch(
+  original: Record<string, unknown>,
+  edited: Record<string, unknown>
+): Record<string, unknown> | undefined {
+  const patch: Record<string, unknown> = {};
+  for (const key of new Set([...Object.keys(original), ...Object.keys(edited)])) {
+    if (JSON.stringify(original[key]) !== JSON.stringify(edited[key])) {
+      patch[key] = Object.prototype.hasOwnProperty.call(edited, key) ? edited[key] : null;
+    }
+  }
+  return Object.keys(patch).length ? patch : undefined;
+}
 
 type BusinessProfileLocation = {
   city?: string | null;
@@ -180,6 +210,18 @@ export default function ProfileSiteEditor() {
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<ProfileDetail | null>(null);
+  const [saveBaseProfile, setSaveBaseProfile] = useState<ProfileDetail | null>(null);
+  const [identityBase, setIdentityBase] = useState<ProfileIdentity | null>(null);
+  const [identityRefreshRequired, setIdentityRefreshRequired] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [contentConflict, setContentConflict] = useState<{
+    attemptId: number;
+    reason: "content" | "target";
+    latest: ProfileDetail | null;
+    reviewing: boolean;
+    reviewError: boolean;
+  } | null>(null);
+  const conflictAttempt = useRef(0);
 
   const [displayName, setDisplayName] = useState("");
   const [headline, setHeadline] = useState("");
@@ -276,7 +318,15 @@ export default function ProfileSiteEditor() {
         }
 
         const detail = (await apiRequest("GET", `/api/profiles/${found.id}`)) as ProfileDetail;
+        const identity = readProfileIdentity(detail);
+        if (detail.id !== found.id || !identity || !Array.isArray(detail.contentBlocks) ||
+            !Number.isSafeInteger(detail.contentBlocksRevision)) {
+          throw new Error("The current profile identity or revision could not be confirmed.");
+        }
         setProfile(detail);
+        setSaveBaseProfile(detail);
+        setIdentityBase(identity);
+        setIdentityRefreshRequired(false);
 
         setDisplayName(detail.displayName || "");
         setHeadline(detail.headline || "");
@@ -388,6 +438,9 @@ export default function ProfileSiteEditor() {
           setProfileBooking(buildDefaultBooking());
         }
       } catch (error: any) {
+        setProfile(null);
+        setSaveBaseProfile(null);
+        setIdentityBase(null);
         console.error("Error loading profile:", error);
         toast({
           title: "Could not load profile",
@@ -583,8 +636,55 @@ export default function ProfileSiteEditor() {
     return blocks;
   };
 
-  const save = async () => {
-    if (!profile) return;
+  const reviewLatestProfile = async () => {
+    if (!profile || !contentConflict) return;
+    const attemptId = contentConflict.attemptId;
+    setContentConflict((current) => current && { ...current, reviewing: true, reviewError: false });
+    try {
+      const latest = (await apiRequest("GET", `/api/profiles/${profile.id}`)) as ProfileDetail;
+      const latestIdentity = readProfileIdentity(latest);
+      if (
+        latest.id !== profile.id ||
+        !latestIdentity ||
+        !Number.isSafeInteger(latest.contentBlocksRevision) ||
+        !Array.isArray(latest.contentBlocks)
+      ) {
+        throw new Error("The current profile revision could not be confirmed.");
+      }
+      // Keep the editor fields and the original save base intact until the owner chooses an action.
+      setContentConflict((current) => current?.attemptId === attemptId
+        ? {
+            ...current,
+            reason: current.reason === "target" || !identityBase || !sameProfileIdentity(identityBase, latestIdentity)
+              ? "target" : "content",
+            latest,
+            reviewing: false,
+            reviewError: false,
+          } : current);
+    } catch {
+      setContentConflict((current) => current?.attemptId === attemptId
+        ? { ...current, reviewing: false, reviewError: true } : current);
+    }
+  };
+
+  const save = async (reviewedProfile?: ProfileDetail) => {
+    if (!profile || !saveBaseProfile || !identityBase || identityRefreshRequired || savingProfile ||
+        (contentConflict && (!reviewedProfile || contentConflict.reason === "target"))) return;
+    const reviewedIdentity = reviewedProfile ? readProfileIdentity(reviewedProfile) : null;
+    if (reviewedProfile && (!reviewedIdentity || !sameProfileIdentity(identityBase, reviewedIdentity))) return;
+    // Publication/visibility responses can contain a newer About while this
+    // page still holds the original JSON draft. Only an explicit review or
+    // successful save advances the draft's source revision.
+    const expectedContentBlocksRevision = reviewedProfile?.contentBlocksRevision ?? saveBaseProfile.contentBlocksRevision;
+    const expectedProfileIdentity = reviewedIdentity ?? identityBase;
+    if (!Number.isSafeInteger(expectedContentBlocksRevision)) {
+      toast({
+        title: "Current version unavailable",
+        description: "Reload this profile before saving. Your draft remains on this page for now.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!parsedPayload) {
       toast({
         title: "Invalid JSON",
@@ -594,6 +694,7 @@ export default function ProfileSiteEditor() {
       return;
     }
 
+    setSavingProfile(true);
     try {
       const builtBlocks = buildContentBlocksForSave();
       if (!builtBlocks) {
@@ -624,13 +725,19 @@ export default function ProfileSiteEditor() {
         return { label, kind, value };
       };
 
-      const normalizedCtaConfig = {
+      const normalizedCtaConfig: Record<string, unknown> = {
         ...(normalizeCta((parsedPayload.ctaConfig as any)?.primary)
           ? { primary: normalizeCta((parsedPayload.ctaConfig as any)?.primary) }
           : {}),
         ...(normalizeCta((parsedPayload.ctaConfig as any)?.secondary)
           ? { secondary: normalizeCta((parsedPayload.ctaConfig as any)?.secondary) }
           : {}),
+      };
+      const baseCtaConfig: Record<string, unknown> = {
+        ...(normalizeCta(saveBaseProfile.ctaConfig?.primary)
+          ? { primary: normalizeCta(saveBaseProfile.ctaConfig.primary) } : {}),
+        ...(normalizeCta(saveBaseProfile.ctaConfig?.secondary)
+          ? { secondary: normalizeCta(saveBaseProfile.ctaConfig.secondary) } : {}),
       };
 
       const seoMetaFromText =
@@ -653,43 +760,62 @@ export default function ProfileSiteEditor() {
         delete (seoMetaFromText as any).faviconUrl;
       }
 
-      const normalizedSeoMeta = {
-        ...(typeof (seoMetaFromText as any).title === "string"
-          ? { title: String((seoMetaFromText as any).title) }
-          : {}),
-        ...(typeof (seoMetaFromText as any).description === "string"
-          ? { description: String((seoMetaFromText as any).description) }
-          : {}),
-        ...(typeof (seoMetaFromText as any).imageUrl === "string"
-          ? { imageUrl: String((seoMetaFromText as any).imageUrl) }
-          : {}),
-        ...(typeof (seoMetaFromText as any).imageWidth === "number"
-          ? { imageWidth: Number((seoMetaFromText as any).imageWidth) }
-          : {}),
-        ...(typeof (seoMetaFromText as any).imageHeight === "number"
-          ? { imageHeight: Number((seoMetaFromText as any).imageHeight) }
-          : {}),
-        ...(typeof (seoMetaFromText as any).faviconUrl === "string"
-          ? { faviconUrl: String((seoMetaFromText as any).faviconUrl) }
-          : {}),
-      };
+      const normalizedSeoMeta = editableSeoMeta(seoMetaFromText);
+      const ctaConfigPatch = sparseObjectPatch(baseCtaConfig, normalizedCtaConfig);
+      const seoMetaPatch = sparseObjectPatch(
+        editableSeoMeta(saveBaseProfile.seoMeta), normalizedSeoMeta
+      );
 
       const updated = (await apiRequest("PUT", `/api/profiles/${profile.id}`, {
-        displayName,
-        headline: headline || null,
+        ...(displayName !== saveBaseProfile.displayName ? { displayName } : {}),
+        ...(headline !== (saveBaseProfile.headline || "") ? { headline: headline || null } : {}),
         contentBlocks: normalizeContentBlocks,
-        ctaConfig: normalizedCtaConfig,
-        seoMeta: normalizedSeoMeta,
+        expectedContentBlocksRevision,
+        expectedProfileIdentity,
+        ...(ctaConfigPatch ? { ctaConfigPatch } : {}),
+        ...(seoMetaPatch ? { seoMetaPatch } : {}),
       })) as ProfileDetail;
+      const updatedIdentity = readProfileIdentity(updated);
+      if (!updatedIdentity) {
+        setIdentityRefreshRequired(true);
+        toast({ title: "Save needs confirmation", description: "Reload the profile before saving again. Your draft remains on this page for now.", variant: "destructive" });
+        return;
+      }
       setProfile(updated);
+      setSaveBaseProfile(updated);
+      setIdentityBase(updatedIdentity);
+      setDisplayName(updated.displayName || "");
+      setHeadline(updated.headline || "");
+      setContentBlocksText(JSON.stringify(updated.contentBlocks ?? [], null, 2));
+      setCtaConfigText(JSON.stringify(updated.ctaConfig ?? {}, null, 2));
+      const refreshedSeoMeta = { ...(updated.seoMeta || {}) };
+      delete refreshedSeoMeta.customDomain;
+      setSeoMetaText(JSON.stringify(refreshedSeoMeta, null, 2));
+      setOgImageUrl(String(updated.seoMeta?.imageUrl || ""));
+      setFaviconUrl(String(updated.seoMeta?.faviconUrl || ""));
+      setFeaturedSlugsText(readFeaturedStoneSlugs(updated.contentBlocks).join(", "));
+      const savedHero = readHeroEditorFields(updated.contentBlocks);
+      setHeroTitle(savedHero.title);
+      setHeroText(savedHero.text);
+      setContentConflict(null);
 
       toast({ title: "Saved", description: "Your profile has been updated." });
     } catch (error: any) {
+      if (error?.status === 409 && error?.code === "PROFILE_CONTENT_BLOCKS_STALE") {
+        setContentConflict({ attemptId: ++conflictAttempt.current, reason: "content", latest: null, reviewing: false, reviewError: false });
+        return;
+      }
+      if (error?.status === 409 && error?.code === "PROFILE_TARGET_CHANGED") {
+        setContentConflict({ attemptId: ++conflictAttempt.current, reason: "target", latest: null, reviewing: false, reviewError: false });
+        return;
+      }
       toast({
         title: "Save failed",
         description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -802,6 +928,7 @@ export default function ProfileSiteEditor() {
             }
           : current
       );
+      setIdentityRefreshRequired(true);
       toast({
         title: "Domain disconnected",
         description: `Your /u/${profile.slug} profile and all content were preserved.`,
@@ -817,6 +944,16 @@ export default function ProfileSiteEditor() {
     }
   };
 
+  const acceptPublicationIdentity = (value: unknown) => {
+    const nextIdentity = readProfileIdentity(value);
+    if (!identityBase || !nextIdentity ||
+        !sameProfileTargetAsidePublication(identityBase, nextIdentity)) {
+      setIdentityRefreshRequired(true);
+      return;
+    }
+    setIdentityBase(nextIdentity);
+  };
+
   const publish = async () => {
     if (!profile) return;
     try {
@@ -825,6 +962,7 @@ export default function ProfileSiteEditor() {
         `/api/profiles/${profile.id}/publish`
       )) as ProfileDetail;
       setProfile(updated);
+      acceptPublicationIdentity(updated);
       if (typeof updated.publiclyReleased === "boolean") {
         setProfileVisibility(updated.publiclyReleased ? "public" : "private");
       }
@@ -851,6 +989,7 @@ export default function ProfileSiteEditor() {
         `/api/profiles/${profile.id}/unpublish`
       )) as ProfileDetail;
       setProfile(updated);
+      acceptPublicationIdentity(updated);
       toast({ title: "Unpublished", description: "Your profile is now private (draft)." });
     } catch (error: any) {
       toast({
@@ -894,6 +1033,19 @@ export default function ProfileSiteEditor() {
             ? ({ ...current, status: finalPayload.profileStatus } as ProfileDetail)
             : current
         );
+      }
+
+      try {
+        const refreshed = await apiRequest("GET", `/api/profiles/${profile.id}`);
+        acceptPublicationIdentity(refreshed);
+        const refreshedIdentity = readProfileIdentity(refreshed);
+        if (refreshedIdentity) {
+          setProfile((current) => current && current.id === profile.id
+            ? { ...current, status: refreshedIdentity.status, publiclyReleased: refreshedIdentity.publiclyReleased }
+            : current);
+        }
+      } catch {
+        setIdentityRefreshRequired(true);
       }
 
       toast({ title: "Updated", description: `Profile visibility set to ${next}.` });
@@ -1165,8 +1317,12 @@ export default function ProfileSiteEditor() {
                   View public page
                 </Button>
               </Link>
-              <Button onClick={save} className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-                Save
+              <Button
+                onClick={() => void save()}
+                disabled={savingProfile || Boolean(contentConflict) || identityRefreshRequired || !identityBase || !Number.isSafeInteger(profile.contentBlocksRevision)}
+                className="bg-ts-orange hover:bg-ts-orange-dark text-white"
+              >
+                {savingProfile ? "Saving…" : "Save"}
               </Button>
               {profile.status === "published" ? (
                 <Button
@@ -1187,6 +1343,94 @@ export default function ProfileSiteEditor() {
               )}
             </div>
 
+            {!Number.isSafeInteger(profile.contentBlocksRevision) ? (
+              <p role="alert" className="text-sm text-amber-200">
+                The current profile version is unavailable. Reload before saving this draft.
+              </p>
+            ) : null}
+            {identityRefreshRequired ? (
+              <p role="alert" className="text-sm text-amber-200">
+                The profile's target or public status changed. Your draft remains here, but this page must be reloaded before saving again.
+              </p>
+            ) : null}
+            {contentConflict ? (
+              <div
+                role="alert"
+                data-testid="profile-editor-content-conflict"
+                className="space-y-3 rounded-lg border border-amber-400/50 bg-amber-400/10 p-4 text-sm text-white"
+              >
+                <p className="font-semibold">
+                  {contentConflict.reason === "target" ? "This profile changed where it is owned or shown." : "This profile changed before your draft could be saved."}
+                </p>
+                <p>
+                  {contentConflict.reason === "target"
+                    ? "The profile owner, business, role, address, or public status changed. Your draft remains in this editor while this page stays open. Reload before saving to the new target."
+                    : "Another person or a background update may have changed it. Your unsaved draft is still in this editor while this page stays open. Review the current saved version before choosing whether to replace it with your draft."}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={contentConflict.reviewing || savingProfile}
+                    onClick={() => void reviewLatestProfile()}
+                  >
+                    {contentConflict.reviewing ? "Loading current version…" : "Review current saved version"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => window.location.reload()}>
+                    Discard my draft and reload
+                  </Button>
+                </div>
+                {contentConflict.reviewError ? (
+                  <p>Could not load the current saved version. Your draft remains here; try reviewing again.</p>
+                ) : null}
+                {contentConflict.latest ? (
+                  <div className="space-y-2">
+                    <div className="grid gap-2 md:grid-cols-2">
+                      <ProfileContentVersionSummary
+                        heading="Current saved version"
+                        displayName={contentConflict.latest.displayName}
+                        headline={contentConflict.latest.headline}
+                        contentBlocks={contentConflict.latest.contentBlocks}
+                      />
+                      <ProfileContentVersionSummary
+                        heading="Your unsaved draft"
+                        displayName={displayName}
+                        headline={headline}
+                        contentBlocks={buildContentBlocksForSave()}
+                      />
+                    </div>
+                    <details className="rounded-md border border-white/20 p-2">
+                      <summary className="cursor-pointer">Show full current saved profile details</summary>
+                      <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-words text-xs">
+                        {JSON.stringify({
+                          headline: contentConflict.latest.headline,
+                          contentBlocks: contentConflict.latest.contentBlocks,
+                          ctaConfig: contentConflict.latest.ctaConfig,
+                          seoMeta: contentConflict.latest.seoMeta,
+                        }, null, 2)}
+                      </pre>
+                    </details>
+                    {contentConflict.reason === "content" ? (
+                      <>
+                        <p>Retry overwrites the current saved page content with your draft. Review any changes above first; this action does not merge the two versions.</p>
+                        <Button
+                          type="button"
+                          disabled={savingProfile}
+                          onClick={() => void save(contentConflict.latest!)}
+                          className="bg-ts-orange hover:bg-ts-orange-dark text-white"
+                        >
+                          Retry saving my draft
+                        </Button>
+                      </>
+                    ) : (
+                      <p>This draft cannot be retried against a changed profile target. Reload before saving.</p>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            <fieldset disabled={savingProfile} className="space-y-5">
             <div className="space-y-2">
               <Label className="text-white/70">Template</Label>
               <p className="text-xs text-white/55">
@@ -1322,6 +1566,7 @@ export default function ProfileSiteEditor() {
                 share image above when left blank.
               </p>
             </div>
+            </fieldset>
 
             <div
               className="space-y-4 rounded-lg border border-white/10 p-4"
@@ -1463,6 +1708,11 @@ export default function ProfileSiteEditor() {
             >
               <div className="space-y-2">
                 <h3 className="text-white font-semibold">Public Profile Settings</h3>
+                {profile.businessId || profile.roleContext.includes("business") ? (
+                  <Link href="/presence/review?section=facts" className="text-sm text-white/75 underline">
+                    Review imported business details
+                  </Link>
+                ) : null}
                 <p className="text-white/60 text-xs">
                   All public profile controls live here in the edit flow: visibility, section
                   exposure, services text, booking/pricing, and profile colors.

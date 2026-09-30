@@ -16,6 +16,7 @@ import {
   isAddressVerificationEvidenceKey,
 } from "../services/addressVerificationEvidence";
 import { withAddressEvidenceTransaction } from "../services/addressVerificationEvidenceTransaction";
+import { updateUserWithBusinessVerificationAuthority } from "../services/businessVerificationTargetBridge";
 
 export function registerAddressVerificationRoutes(app: Express) {
   // Address Verification Endpoints
@@ -389,10 +390,9 @@ export function registerAddressVerificationRoutes(app: Express) {
             .where(eq(addressVerifications.id, id))
             .returning();
           if (status === "approved" || verification.status === "approved") {
-            await tx
-              .update(users)
-              .set({ addressVerified: status === "approved", updatedAt: now })
-              .where(eq(users.id, user.id));
+            await updateUserWithBusinessVerificationAuthority(tx, {
+              userId: user.id, updates: { addressVerified: status === "approved" },
+            });
           }
           return { status: 200, body: { id: updated.id, status: updated.status } };
         });

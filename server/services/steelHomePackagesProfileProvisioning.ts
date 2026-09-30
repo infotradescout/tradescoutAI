@@ -9,6 +9,7 @@ import {
   STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE,
 } from "@shared/steelHomePackagesProfile";
 import { db } from "../db";
+import { profileContentBlocksSnapshotPredicate, reloadProfileContentSnapshot } from "../profileContentBlocksConcurrency";
 import { provisionTradeScoutManagedPartnerContacts } from "./jwStoneManagedContactProvisioning";
 import { hasVerifiedTradeScoutAdminCustody } from "./ownerConfirmedDirectProfile";
 import { provisionRedGranitiProfile } from "./redGranitiProfileProvisioning";
@@ -61,7 +62,7 @@ async function provisionSteelHomePackagesProfileRecord(): Promise<void> {
     }
 
     const existingBusiness = matchingBusinesses[0];
-    const existingProfile = matchingProfiles[0];
+    let existingProfile = matchingProfiles[0];
     const existingBusinessOwnerId = String(existingBusiness?.ownerUserId || "").trim();
     const existingProfileOwnerId = String(existingProfile?.ownerUserId || "").trim();
 
@@ -188,6 +189,7 @@ async function provisionSteelHomePackagesProfileRecord(): Promise<void> {
           .returning();
     if (!business) throw new Error("Steel-home project tools business provisioning failed");
 
+    if (existingProfile) existingProfile = await reloadProfileContentSnapshot(tx, existingProfile);
     const profileValues = {
       ownerUserId,
       businessId: business.id,
@@ -216,7 +218,7 @@ async function provisionSteelHomePackagesProfileRecord(): Promise<void> {
       ? await tx
           .update(profiles)
           .set(profileValues as any)
-          .where(and(eq(profiles.id, existingProfile.id), eq(profiles.ownerUserId, ownerUserId)))
+          .where(and(eq(profiles.id, existingProfile.id), eq(profiles.ownerUserId, ownerUserId), profileContentBlocksSnapshotPredicate(existingProfile)))
           .returning()
       : await tx
           .insert(profiles)

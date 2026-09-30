@@ -19,6 +19,7 @@ import {
   recommendations,
   trustSnapshots,
   users,
+  type Profile,
 } from "../../shared/schema";
 import {
   BOT_USER_AGENT_SQL_PATTERN,
@@ -86,6 +87,12 @@ import {
   ISSA_BUILD_PROFILE_SLUG,
 } from "../../shared/issaBuildProfile";
 import { notifyIndexNow } from "../services/indexNowService";
+import { profileTargetIdentityFromRow, profileTargetIdentityMatches } from "../profileTargetIdentity";
+import {
+  normalizeProfileCustomDomain,
+  PROFILE_TARGET_IDENTITY_KEYS,
+  type ProfileTargetIdentity,
+} from "@shared/profileTargetIdentity";
 import {
   collectProfileIndexNowUrls,
   combineIndexNowChangeUrls,
@@ -825,6 +832,36 @@ const profileSeoSchema = z
   })
   .strict();
 
+// Sparse editor changes are distinct from the legacy whole-object fields.
+// Null deletes a key; an omitted key leaves the current database value alone.
+const profileSeoPatchSchema = z
+  .object({
+    title: z.string().max(120).nullable().optional(),
+    description: z.string().max(500).nullable().optional(),
+    imageUrl: z.string().max(500).nullable().optional(),
+    imageWidth: z.number().nullable().optional(),
+    imageHeight: z.number().nullable().optional(),
+    faviconUrl: z.string().max(500).nullable().optional(),
+  })
+  .strict();
+
+const profileCtaPatchSchema = z
+  .object({
+    primary: ctaSchema.nullable().optional(),
+    secondary: ctaSchema.nullable().optional(),
+  })
+  .strict();
+
+const profileTargetIdentitySchema = z.object({
+  ownerUserId: z.string().min(1),
+  businessId: z.string().nullable(),
+  roleContext: z.string().min(1),
+  slug: z.string().min(1),
+  status: z.enum(["draft", "published"]),
+  publiclyReleased: z.boolean(),
+  customDomain: z.string(),
+}).strict();
+
 const createProfileSchema = z.object({
   roleContext: z.string().min(2).max(64),
   businessId: z.string().optional(),
@@ -849,13 +886,17 @@ const updateProfileSchema = z.object({
   displayName: z.string().min(2).max(120).optional(),
   headline: z.string().max(160).nullable().optional(),
   contentBlocks: z.array(contentBlockSchema).optional(),
+  expectedContentBlocksRevision: z.number().int().positive().optional(),
+  expectedProfileIdentity: z.unknown().optional(),
   ctaConfig: z
     .object({
       primary: ctaSchema.optional(),
       secondary: ctaSchema.optional(),
     })
     .optional(),
+  ctaConfigPatch: profileCtaPatchSchema.optional(),
   seoMeta: profileSeoSchema.optional(),
+  seoMetaPatch: profileSeoPatchSchema.optional(),
 });
 
 const profileBrandColorsSchema = z
@@ -1075,12 +1116,20 @@ router.patch("/api/profiles/:id/profile-booking", isAuthenticated, async (req, r
       normalized as unknown as Record<string, unknown>
     );
     const beforeUrls = await collectEligibleProfileIndexNowUrls(profile);
-    if (isStaffProfileManager(req)) {
-      await storage.updateProfileById(profileId, { contentBlocks } as any);
-    } else {
-      await storage.updateProfileForOwner(userId, profileId, { contentBlocks } as any);
+    const saved = isStaffProfileManager(req)
+      ? await storage.updateProfileByIdWithContentBlocksRevision(
+          profileId, { contentBlocks } as any, profile.contentBlocksRevision, profileTargetIdentityFromRow(profile)
+        )
+      : await storage.updateProfileForOwnerWithContentBlocksRevision(
+          userId, profileId, { contentBlocks } as any, profile.contentBlocksRevision, profileTargetIdentityFromRow(profile)
+        );
+    if (!saved) {
+      return res.status(409).json({
+        code: "PROFILE_CONTENT_BLOCKS_STALE",
+        message: "This profile changed. Reload it before saving your booking settings.",
+      });
     }
-    const afterUrls = await collectEligibleProfileIndexNowUrls({ ...profile, contentBlocks });
+    const afterUrls = await collectEligibleProfileIndexNowUrls(saved);
     notifyIndexNow(combineIndexNowChangeUrls(beforeUrls, afterUrls));
 
     res.json({
@@ -1147,12 +1196,20 @@ router.patch("/api/profiles/:id/profile-sections", isAuthenticated, async (req, 
       legacySections
     );
     const beforeUrls = await collectEligibleProfileIndexNowUrls(profile);
-    if (canManageAnyProfile) {
-      await storage.updateProfileById(profileId, { contentBlocks } as any);
-    } else {
-      await storage.updateProfileForOwner(userId, profileId, { contentBlocks } as any);
+    const saved = canManageAnyProfile
+      ? await storage.updateProfileByIdWithContentBlocksRevision(
+          profileId, { contentBlocks } as any, profile.contentBlocksRevision, profileTargetIdentityFromRow(profile)
+        )
+      : await storage.updateProfileForOwnerWithContentBlocksRevision(
+          userId, profileId, { contentBlocks } as any, profile.contentBlocksRevision, profileTargetIdentityFromRow(profile)
+        );
+    if (!saved) {
+      return res.status(409).json({
+        code: "PROFILE_CONTENT_BLOCKS_STALE",
+        message: "This profile changed. Reload it before saving your section settings.",
+      });
     }
-    const afterUrls = await collectEligibleProfileIndexNowUrls({ ...profile, contentBlocks });
+    const afterUrls = await collectEligibleProfileIndexNowUrls(saved);
     notifyIndexNow(combineIndexNowChangeUrls(beforeUrls, afterUrls));
     return res.json({
       message: "Profile sections updated",
@@ -1286,6 +1343,20 @@ router.patch("/api/profiles/:id/brand-colors", isAuthenticated, async (req, res)
   }
 });
 
+function withPrivateProfileSiteTemplate(profile: Profile, tradePartner: boolean) {
+  const hasLocalServicePresentation = Array.isArray(profile.contentBlocks) &&
+    profile.contentBlocks.some((block: any) => block?.type === "localServiceProfile");
+  return {
+    ...profile,
+    siteTemplate: resolveSiteTemplateId({
+      slug: profile.slug,
+      contentBlocks: profile.contentBlocks,
+      tradePartner,
+      hasLocalServicePresentation,
+    }),
+  };
+}
+
 router.get("/api/profiles/:id", isAuthenticated, async (req, res) => {
   try {
     const userId = getAuthedUserId(req);
@@ -1297,7 +1368,10 @@ router.get("/api/profiles/:id", isAuthenticated, async (req, res) => {
       : await storage.getProfileByIdForOwner(userId, profileId);
     if (!profile) return res.status(404).json({ message: "Profile not found" });
 
-    res.json(profile);
+    const business = profile.businessId
+      ? await storage.getBusinessPublicById(profile.businessId)
+      : undefined;
+    res.json(withPrivateProfileSiteTemplate(profile, business?.tradePartner === true));
   } catch (error: any) {
     console.error("Error fetching profile:", error);
     res.status(500).json({ message: "Failed to fetch profile" });
@@ -1336,11 +1410,59 @@ router.put("/api/profiles/:id", isAuthenticated, async (req, res) => {
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
     const profileId = String(req.params.id);
-    const updates = updateProfileSchema.parse(req.body);
-    const existing = isStaffProfileManager(req)
+    const staffManager = isStaffProfileManager(req);
+    const existing = staffManager
       ? await storage.getProfileById(profileId)
       : await storage.getProfileByIdForOwner(userId, profileId);
     if (!existing) return res.status(404).json({ message: "Profile not found" });
+    if (["ownerUserId", "status", "publiclyReleased"].some((key) =>
+      Object.prototype.hasOwnProperty.call(req.body || {}, key))) {
+      return res.status(400).json({
+        code: "PROFILE_TARGET_FIELD_READ_ONLY",
+        message: "Use the dedicated profile authority and visibility flows for these fields.",
+      });
+    }
+    const updates = updateProfileSchema.parse(req.body);
+    const {
+      expectedContentBlocksRevision,
+      expectedProfileIdentity: rawExpectedProfileIdentity,
+      seoMetaPatch,
+      ctaConfigPatch,
+      ...profileUpdates
+    } = updates;
+    if (expectedContentBlocksRevision === undefined) {
+      return res.status(428).json({
+        code: "PROFILE_CONTENT_BLOCKS_REVISION_REQUIRED",
+        message: "Reload the profile before saving its content.",
+      });
+    }
+    if (!rawExpectedProfileIdentity || typeof rawExpectedProfileIdentity !== "object" ||
+        Array.isArray(rawExpectedProfileIdentity) ||
+        PROFILE_TARGET_IDENTITY_KEYS.some((key) => !Object.prototype.hasOwnProperty.call(rawExpectedProfileIdentity, key))) {
+      return res.status(428).json({
+        code: "PROFILE_TARGET_IDENTITY_REQUIRED",
+        message: "Reload the profile before saving its target.",
+      });
+    }
+    const parsedExpectedProfileIdentity = profileTargetIdentitySchema.parse(rawExpectedProfileIdentity);
+    const expectedProfileIdentity: ProfileTargetIdentity = {
+      ...parsedExpectedProfileIdentity,
+      customDomain: normalizeProfileCustomDomain(parsedExpectedProfileIdentity.customDomain),
+    };
+    if (!profileTargetIdentityMatches(expectedProfileIdentity, existing)) {
+      return res.status(409).json({
+        code: "PROFILE_TARGET_CHANGED",
+        message: "This profile target changed. Reload before saving.",
+        currentContentBlocksRevision: existing.contentBlocksRevision,
+      });
+    }
+    if ((updates.seoMeta !== undefined && seoMetaPatch !== undefined) ||
+        (updates.ctaConfig !== undefined && ctaConfigPatch !== undefined)) {
+      return res.status(400).json({
+        code: "PROFILE_METADATA_PATCH_CONFLICT",
+        message: "Use either a full metadata value or its sparse patch for each field.",
+      });
+    }
     const targetAuthority = await validateProfileTargetAuthority({
       storage,
       ownerUserId: String(existing.ownerUserId || ""),
@@ -1353,6 +1475,11 @@ router.put("/api/profiles/:id", isAuthenticated, async (req, res) => {
         message: targetAuthority.message,
       });
     }
+    const targetBusinessId = updates.businessId === undefined
+      ? existing.businessId : updates.businessId;
+    const targetBusiness = targetBusinessId
+      ? await storage.getBusinessPublicById(targetBusinessId)
+      : undefined;
     const beforeUrls = await collectEligibleProfileIndexNowUrls(existing);
 
     // A custom domain is an ownership-bearing routing value, not ordinary SEO
@@ -1375,22 +1502,56 @@ router.put("/api/profiles/:id", isAuthenticated, async (req, res) => {
           ? updates.contentBlocks
           : upsertProfileBookingConfigBlock(updates.contentBlocks, existingProfileBooking);
     const payload = {
-      ...updates,
+      ...profileUpdates,
       ...(nextSeoMeta === undefined ? {} : { seoMeta: nextSeoMeta }),
       ...(nextContentBlocks === undefined ? {} : { contentBlocks: nextContentBlocks }),
-      roleContext: updates.roleContext as any,
     } as any;
+    const patches = seoMetaPatch === undefined && ctaConfigPatch === undefined
+      ? undefined
+      : { seoMetaPatch, ctaConfigPatch };
 
-    let updated;
-    if (isStaffProfileManager(req)) {
-      updated = await storage.updateProfileById(profileId, payload);
-    } else {
-      updated = await storage.updateProfileForOwner(userId, profileId, payload);
+    const updated = staffManager
+      ? await storage.updateProfileByIdWithContentBlocksRevision(
+          profileId,
+          payload,
+          expectedContentBlocksRevision,
+          expectedProfileIdentity,
+          patches
+        )
+      : await storage.updateProfileForOwnerWithContentBlocksRevision(
+          userId,
+          profileId,
+          payload,
+          expectedContentBlocksRevision,
+          expectedProfileIdentity,
+          patches
+        );
+    if (!updated) {
+      const current = staffManager
+        ? await storage.getProfileById(profileId)
+        : await storage.getProfileByIdForOwner(userId, profileId);
+      if (!current) return res.status(404).json({ message: "Profile not found" });
+      if (!profileTargetIdentityMatches(expectedProfileIdentity, current)) {
+        return res.status(409).json({
+          code: "PROFILE_TARGET_CHANGED",
+          message: "This profile target changed. Reload before saving.",
+          currentContentBlocksRevision: current.contentBlocksRevision,
+        });
+      }
+      return res.status(409).json({
+        code: "PROFILE_CONTENT_BLOCKS_STALE",
+        message: "This profile changed. Reload it before saving your content.",
+        currentContentBlocksRevision: current.contentBlocksRevision,
+      });
     }
     const afterUrls = await collectEligibleProfileIndexNowUrls(updated);
+    const responseProfile = withPrivateProfileSiteTemplate(
+      updated,
+      updated.businessId === targetBusinessId && targetBusiness?.tradePartner === true
+    );
     notifyIndexNow(combineIndexNowChangeUrls(beforeUrls, afterUrls));
 
-    res.json(updated);
+    res.json(responseProfile);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ message: "Invalid request", errors: error.errors });

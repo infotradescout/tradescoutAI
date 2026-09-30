@@ -3,6 +3,8 @@ import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { db } from "../db";
 import { and, eq, like, ne, or, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
+import { profileContentBlocksSnapshotPredicate } from "../profileContentBlocksConcurrency";
+import { ensureBusinessVerificationProfile } from "../services/businessVerificationTargetBridge";
 import {
   BusinessProfileSelectionRequiredError,
   buildOutcomePreferences,
@@ -59,8 +61,8 @@ function jsonEqual(left: unknown, right: unknown): boolean {
 /**
  * Atomic persistence boundary for the universal onboarding outcome.
  *
- * This repository intentionally imports no verification, trust, ranking, or
- * claim tables. Profile population cannot manufacture or start trust state.
+ * Profile population initializes the existing private verification checklist;
+ * it never grants verification, trust, ranking, or public release authority.
  */
 export class OutcomeOnboardingRepository {
   async preflightBusinessProfile(
@@ -170,7 +172,8 @@ export class OutcomeOnboardingRepository {
         })
         .from(users)
         .where(eq(users.id, args.userId))
-        .limit(1);
+        .limit(1)
+        .for("update");
       if (!user) throw new Error("User not found");
       // The per-user advisory lock makes the first persisted, policy-filtered
       // enrichment authoritative. A concurrent retry may finish inference with
@@ -320,9 +323,20 @@ export class OutcomeOnboardingRepository {
               status: "published",
               updatedAt: new Date(),
             } as any)
-            .where(and(eq(profiles.id, profile.id), eq(profiles.ownerUserId, args.userId)))
+            .where(
+              and(
+                eq(profiles.id, profile.id),
+                eq(profiles.ownerUserId, args.userId),
+                profileContentBlocksSnapshotPredicate(profile)
+              )
+            )
             .returning();
-          if (!updated) throw new Error("Profile not found");
+          if (!updated) {
+            throw Object.assign(new Error("Your profile changed. Reload it before completing setup."), {
+              code: "PROFILE_CONTENT_BLOCKS_STALE",
+              status: 409,
+            });
+          }
           profile = updated as Profile;
         }
       } else {
@@ -356,6 +370,8 @@ export class OutcomeOnboardingRepository {
         if (!created) throw new Error("Failed to create canonical business profile");
         profile = created as Profile;
       }
+
+      await ensureBusinessVerificationProfile(tx, { userId: args.userId, business, profile });
 
       const preferences = buildOutcomePreferences(user.preferences, {
         ...args,

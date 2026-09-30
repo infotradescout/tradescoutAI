@@ -1016,6 +1016,62 @@
       "when": 1790029801000,
       "tag": "0141_exchange_stone_inquiry_receipts",
       "breakpoints": false
+    },
+    {
+      "idx": 145,
+      "version": "7",
+      "when": 1790702100000,
+      "tag": "0142_business_presence_plans",
+      "breakpoints": false
+    },
+    {
+      "idx": 146,
+      "version": "7",
+      "when": 1790705700000,
+      "tag": "0143_business_presence_customer_tasks",
+      "breakpoints": false
+    },
+    {
+      "idx": 147,
+      "version": "7",
+      "when": 1790709300000,
+      "tag": "0144_business_presence_task_delete_archive",
+      "breakpoints": false
+    },
+    {
+      "idx": 148,
+      "version": "7",
+      "when": 1790712900000,
+      "tag": "0145_business_presence_fact_decisions",
+      "breakpoints": false
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1790716500000,
+      "tag": "0146_business_presence_about_intent",
+      "breakpoints": false
+    },
+    {
+      "idx": 150,
+      "version": "7",
+      "when": 1790720100000,
+      "tag": "0147_profile_content_blocks_revision",
+      "breakpoints": false
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1790779200000,
+      "tag": "0148_business_presence_about_publication",
+      "breakpoints": false
+    },
+    {
+      "idx": 152,
+      "version": "7",
+      "when": 1790782800000,
+      "tag": "0149_profile_publication_dependency_revision",
+      "breakpoints": false
     }
   ]
 }

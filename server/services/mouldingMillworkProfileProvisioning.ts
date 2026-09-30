@@ -15,6 +15,7 @@ import {
   MOULDING_MILLWORK_PUBLIC_SOURCES,
 } from "@shared/mouldingMillworkProfile";
 import { db } from "../db";
+import { profileContentBlocksSnapshotPredicate } from "../profileContentBlocksConcurrency";
 import { isProvisionedProfileAccountControlConfirmed } from "./provisionedProfileAccountControl";
 
 const MOULDING_MILLWORK_OWNER_EMAIL = Buffer.from(
@@ -314,7 +315,7 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
           .update(profiles)
           .set(profileValues as any)
           .where(
-            and(eq(profiles.id, existingProfile.id), eq(profiles.ownerUserId, String(owner.id)))
+            and(eq(profiles.id, existingProfile.id), eq(profiles.ownerUserId, String(owner.id)), profileContentBlocksSnapshotPredicate(existingProfile))
           )
           .returning()
       : await tx
