@@ -198,7 +198,8 @@ export function parseDirectConnectEntryContext(path: string): DirectConnectEntry
     stateCode: readFirst(params, "state", "stateCode", "prefill_stateCode")?.toUpperCase(),
     targetProviderId: providerId,
     targetUserId: readFirst(params, "target"),
-    targetName: readFirst(params, "targetName", "prefill_businessName") || itemName || profileName,
+    targetName: readFirst(params, "targetName", "prefill_businessName")
+      || (profileSlug && subjectType === "service" ? profileName || itemName : itemName || profileName),
     targetSelector: businessSlug || contractorSlug || profileSlug,
     source,
     title: readFirst(params, "title"),

@@ -3,6 +3,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { webcrypto } from "node:crypto";
 import ExchangeListingDetail from "./ExchangeListingDetail";
 import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME } from "@shared/exchangeListingRules";
 
@@ -10,6 +11,7 @@ import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME } from "@shared/exchangeListingRu
 const state = vi.hoisted(() => ({
   listing: null as any, listingId: "tradescout-stone-aj-quartz", authUser: null as any,
   authLoading: false, query: null as any, seo: null as any,
+  executeMutation: false, pendingSubmission: null as Promise<unknown> | null,
   share: vi.fn(), navigate: vi.fn(), mutate: vi.fn(), api: vi.fn(),
 }));
 vi.mock("wouter", async (importOriginal) => {
@@ -25,7 +27,10 @@ vi.mock("@tanstack/react-query", () => ({
     state.query = options;
     return { data: state.listing, isLoading: false, isError: false };
   },
-  useMutation: () => ({ mutate: state.mutate, isPending: false }),
+  useMutation: (options: any) => ({ mutate: (input: any) => {
+    state.mutate(input);
+    if (state.executeMutation) state.pendingSubmission = options.mutationFn(input).then((result: any) => options.onSuccess?.(result, input)).finally(() => options.onSettled?.());
+  }, isPending: false }),
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }));
 vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({ isAuthenticated: Boolean(state.authUser), isLoading: state.authLoading, user: state.authUser }) }));
@@ -56,6 +61,7 @@ describe("Public Exchange detail and protected action separation", () => {
     window.sessionStorage.clear();
     for (const mock of [state.navigate, state.mutate, state.api, state.share]) mock.mockReset();
     state.listingId = retailListing.id; state.authUser = null; state.authLoading = false; state.query = null; state.seo = null;
+    state.executeMutation = false; state.pendingSubmission = null;
     state.listing = structuredClone(retailListing);
     host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
   });
@@ -70,6 +76,9 @@ describe("Public Exchange detail and protected action separation", () => {
     expect(host.textContent).toContain("128 × 64 in, 127.5 × 64 in");
     expect(host.querySelector("img")?.className).toContain("object-contain");
     expect(host.textContent).toContain(retailListing.description);
+    expect(host.querySelector('[data-testid="exchange-stone-purchase-details"]')?.textContent).toContain("Listed by TradeScout");
+    expect(host.textContent).toContain("Availability: confirm the selected slab and available quantity.");
+    expect(host.textContent).toContain("Pickup or delivery options and charges require confirmation before purchase.");
     expect(host.textContent).not.toContain("0 views");
     expect(buttonContaining(host, "Review Protected Connection")).toBeNull();
     await act(async () => buttonContaining(host, "Ask TradeScout about availability")?.click());
@@ -84,6 +93,30 @@ describe("Public Exchange detail and protected action separation", () => {
     expect(host.querySelector('[data-testid="exchange-stone-slab-price"]')?.textContent).toBe("$30.00 / sq ft");
     expect(host.querySelector('[data-testid="exchange-stone-unit-rate"]')).toBeNull();
     expect(host.textContent).toContain("A full slab total needs confirmed dimensions");
+  });
+  it("preserves anonymous review through synthetic sign-in and sends only after explicit confirmation", async () => {
+    vi.stubGlobal("crypto", webcrypto);
+    window.history.replaceState({}, "", retailListing.publicDetailPath + "?audienceState=TX&audienceCountry=US");
+    await renderDetail();
+    await act(async () => buttonContaining(host, "Ask TradeScout about availability")?.click());
+    await act(async () => buttonContaining(document.body, "Sign in to send")?.click());
+    expect(state.navigate).toHaveBeenCalledWith(expect.stringContaining("/pre-scout-setup?mode=signin&next="));
+    expect(state.api).not.toHaveBeenCalled();
+    state.authUser = { id: "synthetic-only-buyer", city: "Dallas", stateCode: "TX", countryCode: "US" };
+    await renderDetail();
+    expect(document.body.textContent).toContain("Review your stone request");
+    expect(state.api).not.toHaveBeenCalled();
+    state.executeMutation = true;
+    state.api.mockImplementation(async (method: string, path: string, body: any) => {
+      if (method === "GET") return { audience: "eligible" };
+      if (path === "/api/decision-cards") return { id: "synthetic-only-card" };
+      return { id: "synthetic-only-receipt", listingId: body.listingId, conversationId: "synthetic-only-conversation" };
+    });
+    await act(async () => { buttonContaining(document.body, "Confirm & Send")?.click(); await state.pendingSubmission; });
+    expect(state.api.mock.calls.map(call => call[1])).toEqual(["/api/exchange/stone?audienceState=TX&audienceCountry=US", "/api/decision-cards", "/api/marketplace/inquiries"]);
+    expect(state.api).toHaveBeenLastCalledWith("POST", "/api/marketplace/inquiries", expect.objectContaining({ listingId: retailListing.id, authorityGate: "decision_card", sourceDecisionCardId: "synthetic-only-card", decisionScope: `marketplace_listing:${retailListing.id}` }));
+    expect(document.body.textContent).not.toContain("Review your stone request");
+    vi.unstubAllGlobals();
   });
   it("keeps long reference dimensions collapsed after the price", async () => {
     state.listing.specifications.referenceSizesInches = Array.from({ length: 17 }, (_, i) => `${128 - i}x64`).join(", ");

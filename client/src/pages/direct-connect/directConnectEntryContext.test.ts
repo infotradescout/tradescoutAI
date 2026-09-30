@@ -7,6 +7,17 @@ import {
 } from "./directConnectEntryContext";
 
 describe("directConnectEntryContext", () => {
+  it("names the service's profile as the recipient while retaining the selected service title", () => {
+    expect(parseDirectConnectEntryContext(
+      "/direct-connect?profile=issa-build&profileName=ISSA%20Build&item=Countertops&subject=service&title=Countertops"
+    )).toMatchObject({ contextType: "profile", contextId: "issa-build", targetName: "ISSA Build", title: "Countertops", subjectType: "service" });
+    expect(parseDirectConnectEntryContext(
+      "/direct-connect?profile=issa-build&item=Countertops&subject=service"
+    ).targetName).toBe("Countertops");
+    expect(parseDirectConnectEntryContext(
+      "/direct-connect?profile=issa-build&profileName=ISSA%20Build&item=Countertops&subject=service&targetName=Explicit%20recipient"
+    ).targetName).toBe("Explicit recipient");
+  });
   it("normalizes every intent emitted by current TradeScout entry surfaces", () => {
     expect(getDirectConnectIntent("/direct-connect?intent=hire")).toBe("fix_improve");
     expect(getDirectConnectIntent("/direct-connect?intent=support")).toBe("support");
