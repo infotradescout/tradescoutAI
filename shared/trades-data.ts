@@ -243,6 +243,20 @@ export const COMPREHENSIVE_TRADES: Trade[] = [
     category: 'interior'
   },
   {
+    id: 'countertop-fabrication',
+    name: 'Countertop Fabrication',
+    slug: 'countertop-fabrication',
+    description: 'Custom countertop cutting, shaping, and fabrication',
+    category: 'interior'
+  },
+  {
+    id: 'countertop-installation',
+    name: 'Countertop Installation',
+    slug: 'countertop-installation',
+    description: 'Countertop fitting, installation, and replacement',
+    category: 'interior'
+  },
+  {
     id: 'basement-finishing',
     name: 'Basement Finishing',
     slug: 'basement-finishing',

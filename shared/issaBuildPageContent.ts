@@ -22,8 +22,12 @@ export const ISSA_BUILD_SERVICE_SUMMARIES: Readonly<Record<string, string>> = Ob
   "kitchen-projects": "ISSA Build handles kitchen projects in Pensacola and surrounding areas, including cabinets, countertops and stone fabrication.",
   "bathroom-projects": "ISSA Build handles bathroom projects in Pensacola and surrounding areas, including vanities, cabinets and stone surfaces.",
   cabinets: "Kitchen and bathroom cabinets from ISSA Build for projects in Pensacola and surrounding areas.",
-  "countertops-fabrication": "ISSA Build handles stone countertops and fabrication for kitchen and bathroom projects in Pensacola and surrounding areas.",
+  "countertops-fabrication": "ISSA Build handles stone countertops, fabrication and installation for kitchen and bathroom projects in Pensacola and surrounding areas.",
 });
+
+/** Previously generated default; only its exact seeded service identity may be repaired. */
+const LEGACY_COUNTERTOP_SERVICE_SUMMARY =
+  "ISSA Build handles stone countertops and fabrication for kitchen and bathroom projects in Pensacola and surrounding areas.";
 
 /** Exact legacy values, not a keyword filter: owner-written copy must survive. */
 const LEGACY_PRODUCT_COPY = new Set([
@@ -86,7 +90,9 @@ export function buildIssaBuildBusinessContentBlocks(input: unknown): IssaBuildCo
         if (!legacy || value.title !== legacy.title) return value;
         const description = typeof value.description === "string" ? value.description.trim() : "";
         const hasAlternateCopy = [value.body, value.text].some((copy) => typeof copy === "string" && copy.trim());
-        if (hasAlternateCopy || (description && value.description !== legacy.description)) return value;
+        const hasLegacyCountertopSummary = legacy.slug === "countertops-fabrication"
+          && value.description === LEGACY_COUNTERTOP_SERVICE_SUMMARY;
+        if (hasAlternateCopy || (description && value.description !== legacy.description && !hasLegacyCountertopSummary)) return value;
         const summary = ISSA_BUILD_SERVICE_SUMMARIES[legacy.slug];
         return summary ? { ...value, description: summary } : value;
       });
