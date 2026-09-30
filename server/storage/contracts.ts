@@ -489,17 +489,32 @@ export interface IStorage {
   >;
   createProfileForOwner(
     ownerUserId: string,
-    data: Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">
+    data: Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt" | "contentBlocksRevision">
   ): Promise<Profile>;
   updateProfileForOwner(
     ownerUserId: string,
     profileId: string,
-    updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">>
+    updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt" | "contentBlocksRevision" | "contentBlocks">>
   ): Promise<Profile>;
+  updateProfileForOwnerWithContentBlocksRevision(
+    ownerUserId: string,
+    profileId: string,
+    updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt" | "contentBlocksRevision">>,
+    expectedContentBlocksRevision: number,
+    expectedProfileIdentity: import("@shared/profileTargetIdentity").ProfileTargetIdentity,
+    patches?: import("../repositories/profileRepository").ProfileJsonPatches
+  ): Promise<Profile | undefined>;
   updateProfileById(
     profileId: string,
-    updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">>
+    updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt" | "contentBlocksRevision" | "contentBlocks">>
   ): Promise<Profile>;
+  updateProfileByIdWithContentBlocksRevision(
+    profileId: string,
+    updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt" | "contentBlocksRevision">>,
+    expectedContentBlocksRevision: number,
+    expectedProfileIdentity: import("@shared/profileTargetIdentity").ProfileTargetIdentity,
+    patches?: import("../repositories/profileRepository").ProfileJsonPatches
+  ): Promise<Profile | undefined>;
   getProfileById(profileId: string): Promise<Profile | undefined>;
   setUserActiveProfile(userId: string, profileId: string | null): Promise<User>;
   createProfileBookingRequest(

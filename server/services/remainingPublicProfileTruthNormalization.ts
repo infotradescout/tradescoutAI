@@ -10,6 +10,7 @@ import {
 } from "@shared/precisionAerialProfile";
 import { businesses, profiles, users } from "@shared/schema";
 import { db } from "../db";
+import { profileContentBlocksSnapshotPredicate } from "../profileContentBlocksConcurrency";
 import { ADMIN_MANAGED_PROFILE_SOURCE } from "./ownerConfirmedDirectProfile";
 
 function recordValue(value: unknown): Record<string, any> {
@@ -64,7 +65,7 @@ async function normalizePrecisionAerialPublicTruth(): Promise<void> {
     }
 
     const seoMeta = recordValue(profile.seoMeta);
-    await tx
+    const [savedProfile] = await tx
       .update(profiles)
       .set({
         headline: PRECISION_AERIAL_PUBLIC_HEADLINE,
@@ -88,9 +89,12 @@ async function normalizePrecisionAerialPublicTruth(): Promise<void> {
         and(
           eq(profiles.id, profile.id),
           eq(profiles.ownerUserId, String(profile.ownerUserId)),
-          eq(profiles.status, "published")
+          eq(profiles.status, "published"),
+          profileContentBlocksSnapshotPredicate(profile)
         )
-      );
+      )
+      .returning({ id: profiles.id });
+    if (!savedProfile) throw new Error("Precision Aerial profile changed during normalization");
   });
 }
 

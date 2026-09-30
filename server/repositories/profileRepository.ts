@@ -23,6 +23,9 @@ import {
   STEEL_HOME_PACKAGES_PROFILE_IDENTITY,
 } from "@shared/steelHomePackagesProfile";
 import { durableProfessionalProfileApprovalSql } from "../services/profileTargetAuthority";
+import type { ProfileTargetIdentity } from "@shared/profileTargetIdentity";
+import { profileTargetIdentityPredicate } from "../profileContentBlocksConcurrency";
+export { profileTargetIdentityPredicate } from "../profileContentBlocksConcurrency";
 import {
   MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE,
   MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE,
@@ -112,7 +115,28 @@ export async function loadCanonicalPublicMapProfileUrls(
   return result;
 }
 
-type ProfileMutation = Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">;
+type ProfileMutation = Omit<
+  InsertProfile,
+  "id" | "ownerUserId" | "createdAt" | "updatedAt" | "contentBlocksRevision"
+>;
+
+export type ProfileJsonPatches = {
+  seoMetaPatch?: Record<string, unknown>;
+  ctaConfigPatch?: Record<string, unknown>;
+};
+
+// Evaluate sparse JSON changes against the row being updated, after PostgreSQL
+// has acquired its row lock. A route pre-read can already be stale here.
+function applyProfileJsonPatch(column: typeof profiles.seoMeta | typeof profiles.ctaConfig, patch: Record<string, unknown>) {
+  let expression = sql`COALESCE(${column}, '{}'::jsonb)`;
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) continue;
+    expression = value === null
+      ? sql`${expression} - ${key}::text`
+      : sql`jsonb_set(${expression}, ARRAY[${key}]::text[], ${JSON.stringify(value)}::jsonb, true)`;
+  }
+  return expression;
+}
 
 function slugify(input: string): string {
   return String(input)
@@ -435,8 +459,11 @@ export class ProfileRepository {
   async updateProfileForOwner(
     ownerUserId: string,
     profileId: string,
-    updates: Partial<ProfileMutation>
+    updates: Partial<Omit<ProfileMutation, "contentBlocks">>
   ): Promise<Profile> {
+    if ((updates as Partial<ProfileMutation>).contentBlocks !== undefined) {
+      throw new Error("Profile content requires a loaded revision and identity; use the content CAS writer");
+    }
     const existing = await this.getProfileByIdForOwner(ownerUserId, profileId);
     if (!existing) throw new Error("Profile not found");
 
@@ -456,8 +483,45 @@ export class ProfileRepository {
     return profile as Profile;
   }
 
+  /** Whole-array contentBlocks CAS plus profile-target identity guard.
+   * Scalar metadata edits remain last-writer-wins; sparse JSON patches preserve
+   * unrelated keys but do not version concurrent edits to the same key.
+   */
+  async updateProfileForOwnerWithContentBlocksRevision(
+    ownerUserId: string,
+    profileId: string,
+    updates: Partial<ProfileMutation>,
+    expectedContentBlocksRevision: number,
+    expectedProfileIdentity: ProfileTargetIdentity,
+    patches?: ProfileJsonPatches
+  ): Promise<Profile | undefined> {
+    const nextSlug = updates.slug ? await this.generateUniqueProfileSlug(updates.slug) : undefined;
+    const [profile] = await db
+      .update(profiles)
+      .set({
+        ...updates,
+        ...(nextSlug ? { slug: nextSlug } : {}),
+        ...(patches?.seoMetaPatch === undefined ? {} : { seoMeta: applyProfileJsonPatch(profiles.seoMeta, patches.seoMetaPatch) }),
+        ...(patches?.ctaConfigPatch === undefined ? {} : { ctaConfig: applyProfileJsonPatch(profiles.ctaConfig, patches.ctaConfigPatch) }),
+        updatedAt: new Date(),
+      } as any)
+      .where(
+        and(
+          eq(profiles.id, profileId),
+          eq(profiles.ownerUserId, ownerUserId),
+          eq(profiles.contentBlocksRevision, expectedContentBlocksRevision),
+          profileTargetIdentityPredicate(expectedProfileIdentity)
+        )
+      )
+      .returning();
+    return profile as Profile | undefined;
+  }
+
   /** Super-admin / staff manage path — does not require owner match. */
-  async updateProfileById(profileId: string, updates: Partial<ProfileMutation>): Promise<Profile> {
+  async updateProfileById(profileId: string, updates: Partial<Omit<ProfileMutation, "contentBlocks">>): Promise<Profile> {
+    if ((updates as Partial<ProfileMutation>).contentBlocks !== undefined) {
+      throw new Error("Profile content requires a loaded revision and identity; use the content CAS writer");
+    }
     const [existing] = await db.select().from(profiles).where(eq(profiles.id, profileId)).limit(1);
     if (!existing) throw new Error("Profile not found");
 
@@ -475,6 +539,35 @@ export class ProfileRepository {
     const profile = rows[0];
     if (!profile) throw new Error("Profile not found");
     return profile as Profile;
+  }
+
+  /** Staff route only: the route verifies staff authority before this unscoped CAS. */
+  async updateProfileByIdWithContentBlocksRevision(
+    profileId: string,
+    updates: Partial<ProfileMutation>,
+    expectedContentBlocksRevision: number,
+    expectedProfileIdentity: ProfileTargetIdentity,
+    patches?: ProfileJsonPatches
+  ): Promise<Profile | undefined> {
+    const nextSlug = updates.slug ? await this.generateUniqueProfileSlug(updates.slug) : undefined;
+    const [profile] = await db
+      .update(profiles)
+      .set({
+        ...updates,
+        ...(nextSlug ? { slug: nextSlug } : {}),
+        ...(patches?.seoMetaPatch === undefined ? {} : { seoMeta: applyProfileJsonPatch(profiles.seoMeta, patches.seoMetaPatch) }),
+        ...(patches?.ctaConfigPatch === undefined ? {} : { ctaConfig: applyProfileJsonPatch(profiles.ctaConfig, patches.ctaConfigPatch) }),
+        updatedAt: new Date(),
+      } as any)
+      .where(
+        and(
+          eq(profiles.id, profileId),
+          eq(profiles.contentBlocksRevision, expectedContentBlocksRevision),
+          profileTargetIdentityPredicate(expectedProfileIdentity)
+        )
+      )
+      .returning();
+    return profile as Profile | undefined;
   }
 
   async getProfileById(profileId: string): Promise<Profile | undefined> {

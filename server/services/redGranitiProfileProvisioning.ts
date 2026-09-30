@@ -1,4 +1,5 @@
 import { profileReleaseSeedFields } from "@shared/profileVisibility";
+import { profileContentBlocksSnapshotPredicate, reloadProfileContentSnapshot } from "../profileContentBlocksConcurrency";
 import { and, eq, ne, or, sql } from "drizzle-orm";
 import { businesses, contractors, profiles, users } from "@shared/schema";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
@@ -113,7 +114,7 @@ export async function provisionRedGranitiProfile(): Promise<void> {
       .from(businesses)
       .where(eq(businesses.slug, RED_GRANITI_PROFILE_SLUG))
       .limit(1);
-    const [existingProfile] = await tx
+    let [existingProfile] = await tx
       .select()
       .from(profiles)
       .where(eq(profiles.slug, RED_GRANITI_PROFILE_SLUG))
@@ -357,6 +358,7 @@ export async function provisionRedGranitiProfile(): Promise<void> {
       console.warn("[profile-provisioning] R.E.D. Graniti recommendation binding is ambiguous");
     }
 
+    if (existingProfile) existingProfile = await reloadProfileContentSnapshot(tx, existingProfile);
     const profileValues = {
       ownerUserId: adminOwner.id,
       businessId: business.id,
@@ -389,7 +391,7 @@ export async function provisionRedGranitiProfile(): Promise<void> {
       ? await tx
           .update(profiles)
           .set(profileValues as any)
-          .where(eq(profiles.id, existingProfile.id))
+          .where(and(eq(profiles.id, existingProfile.id), profileContentBlocksSnapshotPredicate(existingProfile)))
           .returning()
       : await tx
           .insert(profiles)

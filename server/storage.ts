@@ -318,8 +318,10 @@ import { db, pool as neonPool } from "./db";
 import { UserSecurityRepository } from "./repositories/userSecurityRepository";
 import { SitemapRepository } from "./repositories/sitemapRepository";
 import { BusinessRepository, type PublicBusinessRecord } from "./repositories/businessRepository";
-import { ProfileRepository, type PublicProfileRecord } from "./repositories/profileRepository";
+import { ProfileRepository, type ProfileJsonPatches, type PublicProfileRecord } from "./repositories/profileRepository";
+import type { ProfileTargetIdentity } from "@shared/profileTargetIdentity";
 import { OutcomeOnboardingRepository } from "./repositories/outcomeOnboardingRepository";
+import { updateUserWithBusinessVerificationAuthority } from "./services/businessVerificationTargetBridge";
 import { CrmAndDealsStorageRepository } from "./storage/repositories/crm-and-deals";
 import { FeatureFlagRepository } from "./storage/repositories/feature-flags";
 import type {
@@ -702,7 +704,7 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
 
   async createProfileForOwner(
     ownerUserId: string,
-    data: Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">
+    data: Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt" | "contentBlocksRevision">
   ): Promise<Profile> {
     return this.profileRepository.createProfileForOwner(ownerUserId, data);
   }
@@ -710,16 +712,50 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
   async updateProfileForOwner(
     ownerUserId: string,
     profileId: string,
-    updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">>
+    updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt" | "contentBlocksRevision" | "contentBlocks">>
   ): Promise<Profile> {
     return this.profileRepository.updateProfileForOwner(ownerUserId, profileId, updates);
   }
 
+  async updateProfileForOwnerWithContentBlocksRevision(
+    ownerUserId: string,
+    profileId: string,
+    updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt" | "contentBlocksRevision">>,
+    expectedContentBlocksRevision: number,
+    expectedProfileIdentity: ProfileTargetIdentity,
+    patches?: ProfileJsonPatches
+  ): Promise<Profile | undefined> {
+    return this.profileRepository.updateProfileForOwnerWithContentBlocksRevision(
+      ownerUserId,
+      profileId,
+      updates,
+      expectedContentBlocksRevision,
+      expectedProfileIdentity,
+      patches
+    );
+  }
+
   async updateProfileById(
     profileId: string,
-    updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">>
+    updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt" | "contentBlocksRevision" | "contentBlocks">>
   ): Promise<Profile> {
     return this.profileRepository.updateProfileById(profileId, updates);
+  }
+
+  async updateProfileByIdWithContentBlocksRevision(
+    profileId: string,
+    updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt" | "contentBlocksRevision">>,
+    expectedContentBlocksRevision: number,
+    expectedProfileIdentity: ProfileTargetIdentity,
+    patches?: ProfileJsonPatches
+  ): Promise<Profile | undefined> {
+    return this.profileRepository.updateProfileByIdWithContentBlocksRevision(
+      profileId,
+      updates,
+      expectedContentBlocksRevision,
+      expectedProfileIdentity,
+      patches
+    );
   }
 
   async getProfileById(profileId: string): Promise<Profile | undefined> {
@@ -990,6 +1026,9 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
   }
 
   async updateUser(id: string, updates: Partial<User>): Promise<User> {
+    if (updates.emailVerified !== undefined || updates.addressVerified !== undefined || updates.verificationStatus === "approved" || updates.verifiedBadge === true) {
+      return db.transaction((tx: any) => updateUserWithBusinessVerificationAuthority(tx, { userId: id, updates }));
+    }
     const [user] = await db
       .update(users)
       .set({ ...updates, updatedAt: new Date() })

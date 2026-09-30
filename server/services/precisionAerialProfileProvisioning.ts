@@ -14,6 +14,7 @@ import {
 } from "@shared/precisionAerialProfile";
 import { businesses, profiles, users } from "@shared/schema";
 import { db } from "../db";
+import { profileContentBlocksSnapshotPredicate, reloadProfileContentSnapshot } from "../profileContentBlocksConcurrency";
 import { ADMIN_MANAGED_PROFILE_SOURCE } from "./ownerConfirmedDirectProfile";
 
 export const PRECISION_AERIAL_PROFILE_PROVISIONING_SOURCE = ADMIN_MANAGED_PROFILE_SOURCE;
@@ -270,7 +271,7 @@ export async function provisionPrecisionAerialProfile(): Promise<void> {
       .from(businesses)
       .where(eq(businesses.slug, PRECISION_AERIAL_PROFILE_SLUG))
       .limit(1);
-    const [existingProfile] = await tx
+    let [existingProfile] = await tx
       .select()
       .from(profiles)
       .where(eq(profiles.slug, PRECISION_AERIAL_PROFILE_SLUG))
@@ -424,6 +425,7 @@ export async function provisionPrecisionAerialProfile(): Promise<void> {
           .returning();
     if (!business) throw new Error("Precision Aerial business provisioning failed");
 
+    if (existingProfile) existingProfile = await reloadProfileContentSnapshot(tx, existingProfile);
     const profileSeedFields = resolvePrecisionAerialProfileSeedFields(
       existingProfile,
       existingPreferences
@@ -446,7 +448,8 @@ export async function provisionPrecisionAerialProfile(): Promise<void> {
               eq(profiles.id, existingProfile.id),
               eq(profiles.ownerUserId, steward.id),
               eq(profiles.businessId, business.id),
-              eq(profiles.status, "published")
+              eq(profiles.status, "published"),
+              profileContentBlocksSnapshotPredicate(existingProfile)
             )
           )
           .returning()
