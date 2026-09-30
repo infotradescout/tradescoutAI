@@ -1,5 +1,6 @@
 import type { Request, Response, Router } from "express";
 import { loadScoutWorkOverview, type ScoutWorkDatabase } from "./scoutWorkOverview";
+import { registerScoutRequestContextRoutes } from "./scoutRequestContextRoutes";
 
 export function createScoutWorkHandler(getDatabase: () => Promise<ScoutWorkDatabase>) {
   return async (req: Request, res: Response): Promise<void> => {
@@ -28,4 +29,5 @@ export function createScoutWorkHandler(getDatabase: () => Promise<ScoutWorkDatab
 
 export function registerScoutWorkRoutes(router: Router): void {
   router.get("/work", createScoutWorkHandler(async () => (await import("../db")).pool));
+  registerScoutRequestContextRoutes(router);
 }

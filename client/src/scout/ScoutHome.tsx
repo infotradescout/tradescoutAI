@@ -383,7 +383,7 @@ export function ScoutHome({
         onContinueConversation={() => onContinuationSelect(meaningfulContinuations[0].id)}
         onNavigate={navigate}
       />
-      <div className="px-4"><ScoutWorkPanel /></div>
+      <div className="px-4"><ScoutWorkPanel onPromptSelect={onPromptSelect} /></div>
     </div>
   );
 }
