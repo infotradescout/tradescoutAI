@@ -74,6 +74,136 @@ export async function proveJwStoneCartJourney({ page, context, database, fixture
   await cart.getByTestId('jw-cart-reviewed-subtotal').getByText('$9,090.00', { exact: true }).waitFor();
   console.log('JW_CART_HELD_STOCK_PROOF ' + JSON.stringify({ device, heldStockExcluded: true, staleTotalCleared: true, remainingSlabPriced: true, reviewLeftCounterUntouched: true, releasedStockRechecked: true }));
 
+  // Exercise incomplete source facts only on this authenticated verifier's disposable lot.
+  assert.equal(database.connectionParameters.host, '127.0.0.1');
+  assert.equal((await database.query('SELECT current_database() AS name')).rows[0].name, 'ts_jw_workflow_test');
+  assert.match(fixture.ownerId, /^jw-fixture-owner-/);
+  const dimensionRows = (await database.query(`SELECT passport.id,passport.dimensions_json,passport.condition_json,
+      passport.source_asset_ref,position.id AS position_id,to_jsonb(position) AS position_snapshot
+    FROM stone_asset_passports passport JOIN stone_inventory_positions position ON position.asset_passport_id=passport.id
+    JOIN businesses business ON business.id=position.holder_business_id
+    WHERE passport.public_id=$1 AND passport.source_business_id=$2 AND passport.custody_business_id=$2
+      AND position.holder_business_id=$2 AND business.owner_user_id=$3`,
+    [fixture.cartStockId, fixture.businessId, fixture.ownerId])).rows;
+  assert.equal(dimensionRows.length, 1, 'Only one fixture-owned passport may be changed');
+  const dimensionFixture = dimensionRows[0];
+  assert.match(dimensionFixture.source_asset_ref, /^seller-managed:/);
+  assert.deepEqual(dimensionFixture.dimensions_json, { length: 120, height: 60, thickness: 1.25, unit: 'in' });
+  assert.equal(dimensionFixture.condition_json.showAsNewArrival, true);
+  assert.equal(Number(dimensionFixture.position_snapshot.quantity), 3);
+  assert.equal(Number(dimensionFixture.position_snapshot.held_quantity), 0);
+  assert.equal(dimensionFixture.position_snapshot.public_availability_status, 'published_current');
+  const originalDimensions = JSON.stringify(dimensionFixture.dimensions_json);
+  const positionSnapshot = JSON.stringify(dimensionFixture.position_snapshot);
+  await click(cart.getByRole('button', { name: 'Close cart', exact: true }));
+  await page.goto(base + rootPath, { waitUntil: 'domcontentloaded' });
+  let arrival = page.getByTestId('jw-new-arrival-item-' + fixture.cartStockId);
+  await arrival.getByTestId('jw-stone-estimated-slab-total').waitFor();
+  assert.equal(await arrival.getByTestId('jw-stone-estimated-slab-total').innerText(), '$5,050.50');
+  await click(page.getByTestId('jw-stone-member-cart-button'));
+  cart = page.getByTestId('jw-stone-member-cart');
+  await cart.getByTestId('jw-cart-reviewed-subtotal').getByText('$9,090.00', { exact: true }).waitFor();
+  const dimensionCases = [
+    { name: 'missing-unit', dimensions: { length: 120, height: 60, thickness: 1.25 },
+      normalized: { length: 120, height: 60, thickness: 1.25, unit: null },
+      labels: ['Length: 120', 'Height: 60', 'Thickness: 1.25', 'Measurement unit needed'] },
+    { name: 'unknown-unit', dimensions: { length: 120, height: 60, thickness: 1.25, unit: 'cm' },
+      normalized: { length: 120, height: 60, thickness: 1.25, unit: null },
+      labels: ['Length: 120', 'Height: 60', 'Thickness: 1.25', 'Measurement unit needed'] },
+    { name: 'missing-height', dimensions: { length: 120, height: null, thickness: 1.25, unit: 'in' },
+      normalized: { length: 120, height: null, thickness: 1.25, unit: 'in' },
+      labels: ['Length: 120 in', 'Thickness: 1.25 in'] },
+  ];
+  for (const dimensionCase of dimensionCases) {
+    const changedDimensions = JSON.stringify(dimensionCase.dimensions);
+    const changed = await database.query(`UPDATE stone_asset_passports passport SET dimensions_json=$4::jsonb
+      FROM stone_inventory_positions position,businesses business
+      WHERE passport.id=$1::uuid AND passport.public_id=$2 AND passport.source_business_id=$3
+        AND passport.custody_business_id=$3 AND passport.dimensions_json=$5::jsonb
+        AND position.asset_passport_id=passport.id AND position.id=$7::uuid AND position.holder_business_id=$3
+        AND to_jsonb(position)=$6::jsonb AND business.id=$3 AND business.owner_user_id=$8 RETURNING passport.id`,
+      [dimensionFixture.id, fixture.cartStockId, fixture.businessId, changedDimensions, originalDimensions,
+        positionSnapshot, dimensionFixture.position_id, fixture.ownerId]);
+    assert.equal(changed.rowCount, 1, 'Dimension case must change exactly one unchanged fixture-owned passport');
+    try {
+      const pendingDimensions = nextReview(2);
+      await click(cart.getByRole('button', { name: 'Recheck total', exact: true }));
+      const dimensionResponse = await pendingDimensions; assert.equal(dimensionResponse.status(), 200);
+      const blocked = await dimensionResponse.json();
+      assert.equal(blocked.viewerId, userId); assert.equal(blocked.materialReady, false);
+      assert.equal(blocked.subtotalCents, null); assert.equal(blocked.lines.length, 1);
+      assert.equal(blocked.lines[0].status, 'dimensions_required'); assert.equal(blocked.lines[0].availableQuantity, 3);
+      assert.equal(blocked.bundle.regularSubtotalCents, null); assert.equal(blocked.bundle.savingsCents, null);
+      assert.equal(blocked.inventoryReserved, false); assert.equal(blocked.readyForCheckout, false);
+      assert(!/oneSlabTotalCents|lineTotalCents|unitRateCents|bundlePricing/.test(JSON.stringify(blocked.lines)));
+      await cart.getByText('Exact slab dimensions are needed for a total.', { exact: true }).waitFor();
+      assert.equal(await cart.locator('[data-testid="jw-cart-reviewed-subtotal"], [data-testid="jw-cart-line-total"], [data-testid="jw-bundle-savings"], [data-testid="jw-cart-make-offer"]').count(), 0,
+        'An incomplete dimension must clear all stale checked price totals and the priced offer action');
+      for (const pathname of ['/api/u/jw-stone/stone-inventory/current', '/api/u/jw-stone/stone-inventory/new-arrivals']) {
+        const response = await context.request.get(base + pathname); assert.equal(response.status(), 200);
+        const stock = (await response.json()).items.find(item => item.id === fixture.cartStockId);
+        assert(stock, 'The public source must retain the explicitly published fixture');
+        assert.deepEqual(stock.dimensions, dimensionCase.normalized);
+        assert.equal(stock.quantity, 3); assert.equal(stock.unit, 'slabs');
+      }
+      await click(cart.getByRole('button', { name: 'Close cart', exact: true }));
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      arrival = page.getByTestId('jw-new-arrival-item-' + fixture.cartStockId);
+      const arrivalDimensions = arrival.locator('dl > div').filter({ has: page.locator('dt').filter({ hasText: /^Dimensions$/ }) }).locator('dd');
+      await arrivalDimensions.waitFor();
+      const dimensionText = await arrivalDimensions.innerText();
+      for (const label of dimensionCase.labels) assert(dimensionText.includes(label), 'Public stock dropped the known axis: ' + label);
+      assert(!dimensionText.includes(' x '), 'Partial dimensions must remain labeled axes');
+      if (dimensionCase.normalized.unit === null) assert(!/\b(?:in|mm|cm)\b/.test(dimensionText), 'Unknown units must not become invented measurement units');
+      if (dimensionCase.normalized.height === null) assert(!dimensionText.includes('Height:'), 'Missing height must not become an invented axis');
+      await arrival.getByTestId('jw-stone-member-price-inventory').getByText('$101.01 / sq. ft.', { exact: true }).waitFor();
+      assert.equal(await arrival.getByTestId('jw-stone-estimated-slab-total').count(), 0, 'Incomplete public stock must not invent a slab estimate');
+      const memberPrice = await context.request.get(base + '/api/u/jw-stone/member-pricing'); assert.equal(memberPrice.status(), 200);
+      const memberRates = await memberPrice.json(); assert.equal(memberRates.viewerId, userId); assert.equal(memberRates.prices[0].slabPriceCents, 10101);
+      assert(!JSON.stringify(memberRates).includes('landedCostCents'));
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2), false);
+      await arrival.screenshot({ path: path.join(output, device + '-synthetic-' + dimensionCase.name + '-arrival.png') });
+      const pendingReopened = nextReview(2);
+      await click(page.getByTestId('jw-stone-member-cart-button'));
+      cart = page.getByTestId('jw-stone-member-cart'); await cart.waitFor();
+      const reopenedResponse = await pendingReopened; assert.equal(reopenedResponse.status(), 200);
+      const reopened = await reopenedResponse.json(); assert.equal(reopened.lines[0].status, 'dimensions_required'); assert.equal(reopened.subtotalCents, null);
+      assert.equal(await cart.getByRole('combobox', { name: 'Stock for Honey Onyx', exact: true }).inputValue(), fixture.cartStockId);
+      assert.equal(await cart.getByLabel('Quantity for Honey Onyx', { exact: true }).inputValue(), '2');
+      await cart.getByText('Exact slab dimensions are needed for a total.', { exact: true }).waitFor();
+      assert((await cart.innerText()).includes('Dimensions needed'));
+      assert.equal(await cart.locator('[data-testid="jw-cart-reviewed-subtotal"], [data-testid="jw-cart-line-total"], [data-testid="jw-bundle-savings"], [data-testid="jw-cart-make-offer"]').count(), 0);
+      await cart.screenshot({ path: path.join(output, device + '-synthetic-' + dimensionCase.name + '-cart.png') });
+    } finally {
+      const restored = await database.query(`UPDATE stone_asset_passports passport SET dimensions_json=$4::jsonb
+        FROM stone_inventory_positions position,businesses business
+        WHERE passport.id=$1::uuid AND passport.public_id=$2 AND passport.source_business_id=$3
+          AND passport.custody_business_id=$3 AND passport.dimensions_json=$5::jsonb
+          AND position.asset_passport_id=passport.id AND position.id=$7::uuid AND position.holder_business_id=$3
+          AND to_jsonb(position)=$6::jsonb AND business.id=$3 AND business.owner_user_id=$8 RETURNING passport.dimensions_json`,
+        [dimensionFixture.id, fixture.cartStockId, fixture.businessId, originalDimensions, changedDimensions,
+          positionSnapshot, dimensionFixture.position_id, fixture.ownerId]);
+      assert.equal(restored.rowCount, 1, 'Dimension cleanup must restore exactly one fixture-owned passport');
+      assert.deepEqual(restored.rows[0].dimensions_json, dimensionFixture.dimensions_json);
+    }
+    const pendingRestored = nextReview(2);
+    await click(cart.getByRole('button', { name: 'Recheck total', exact: true }));
+    const restoredResponse = await pendingRestored; assert.equal(restoredResponse.status(), 200);
+    assert.equal((await restoredResponse.json()).subtotalCents, 909000);
+    await cart.getByTestId('jw-cart-reviewed-subtotal').getByText('$9,090.00', { exact: true }).waitFor();
+    await click(cart.getByRole('button', { name: 'Close cart', exact: true }));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    arrival = page.getByTestId('jw-new-arrival-item-' + fixture.cartStockId);
+    await arrival.getByTestId('jw-stone-estimated-slab-total').waitFor();
+    assert.equal(await arrival.getByTestId('jw-stone-estimated-slab-total').innerText(), '$5,050.50');
+    await click(page.getByTestId('jw-stone-member-cart-button'));
+    cart = page.getByTestId('jw-stone-member-cart');
+    await cart.getByTestId('jw-cart-reviewed-subtotal').getByText('$9,090.00', { exact: true }).waitFor();
+    console.log('JW_CART_DIMENSION_PROOF ' + JSON.stringify({ device, case: dimensionCase.name, actualPublicRoutes: true,
+      knownAxesLabeled: true, memberRatesRetained: true, noInventedEstimate: true, staleTotalsCleared: true,
+      savedCartRechecked: true, exactDimensionsRestored: true, positionUnchanged: true }));
+  }
+
   const duplicate = await context.request.post(base + reviewPath, { data: { lines: [
     { inventoryPublicId: fixture.cartStockId, quantity: 2 }, { inventoryPublicId: fixture.cartStockId, quantity: 2 },
   ] } });
@@ -158,6 +288,8 @@ export async function proveJwStoneCartJourney({ page, context, database, fixture
   await click(dialog.getByRole('button', { name: 'Close Direct Connect', exact: true }));
   await click(page.getByTestId('jw-stone-member-cart').getByRole('button', { name: 'Close cart', exact: true }));
   return { exactStockSelection: true, serverCheckedSubtotal: true, combinedStockQuantityChecked: true, quantityRateApplied: true,
+    missingUnitBlocked: true, unknownUnitBlocked: true, missingHeightBlocked: true, publicKnownAxesLabeled: true,
+    incompleteDimensionsSuppressEstimatesAndTotals: true, dimensionFixtureRestored: true,
     heldStockExcluded: true, staleTotalCleared: true, reviewLeftCounterUntouched: true, releasedStockRechecked: true,
     reloadRetainsSelectionsAndFulfillment: true, noPersistentBrowserPrices: true, nativeCartQuoteSubmitted: true,
     privateRequestPersisted: true, selectedSupplierNotifiedInApp: true, contactRemainsPending: true,

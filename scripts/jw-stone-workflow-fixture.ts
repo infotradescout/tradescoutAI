@@ -8,6 +8,8 @@ assert.equal(process.env.JW_WORKFLOW_FIXTURE, "true");
 const databaseUrl = new URL(process.env.TEST_DATABASE_URL || "");
 assert.equal(databaseUrl.hostname, "127.0.0.1");
 assert.equal(databaseUrl.pathname, "/ts_jw_workflow_test");
+const stage = (name: string) => console.log("JW_WORKFLOW_FIXTURE_STAGE " + JSON.stringify({ stage: name, at: new Date().toISOString() }));
+stage("isolation-validated");
 const output = path.resolve(process.env.JW_WORKFLOW_PRIVATE_OUTPUT || "test-results/jw-workflow-private");
 const offersOnly = process.env.JW_WORKFLOW_OFFERS === "true";
 const keep = new Set(["PATH", "HOME", "TMPDIR", "NODE_ENV", "TEST_DATABASE_URL", "JW_WORKFLOW_FIXTURE"]);
@@ -31,8 +33,10 @@ process.env.JW_STONE_PRICING_APPROVED_IMPORT = JSON.stringify({
   sourceUpdatedAt: now, sourceRetrievedAt: now,
   prices: [{ stoneName: "Honey Onyx", stoneKey: jwStonePriceKey("Honey Onyx"), landedCostCents: 4040, slabPriceCents: 10101, bundlePriceCents: 9090, bundleMinSlabs: offersOnly ? 7 : 2 }, ...(offersOnly ? [{ stoneName: "Fantasy Brown", stoneKey: jwStonePriceKey("Fantasy Brown"), landedCostCents: 3000, slabPriceCents: 8000, bundlePriceCents: 7000, bundleMinSlabs: 7 }] : [])],
 });
+stage("loading-local-database");
 const { db, pool } = await import("../server/db");
 assert.equal((await pool.query("SELECT current_database() AS name")).rows[0].name, "ts_jw_workflow_test");
+stage("local-database-connected");
 const schema = await import("../shared/schema");
 const { default: bcrypt } = await import("bcrypt");
 const ownerId = "jw-fixture-owner-" + randomUUID();
@@ -54,6 +58,7 @@ const [profile] = await db.insert(schema.profiles).values({
   headline: "Synthetic isolated supplier fixture; not public stock or pricing", contentBlocks: [],
 }).returning();
 // Only the asserted disposable database receives this invented three-slab lot.
+stage("publishing-synthetic-inventory");
 const { getStoneInventoryProfileTarget, upsertCurrentStoneInventory, setStoneInventorySaleReady } = await import("../server/services/stoneInventoryService");
 const target = await getStoneInventoryProfileTarget("jw-stone");
 assert(target && target.businessId === business.id);
@@ -64,6 +69,8 @@ const cartStock = await upsertCurrentStoneInventory(target, {
   lastConfirmedAt: now, confirmationExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
 });
 await setStoneInventorySaleReady({ target, publicId: cartStock.id, saleReady: true, actorUserId: ownerId });
+const { setStoneInventoryNewArrival } = await import("../server/services/stoneNewArrivalsService");
+await setStoneInventoryNewArrival({ target, publicId: cartStock.id, showAsNewArrival: true, actorUserId: ownerId });
 
 let otherStockId: string | undefined;
 if (offersOnly) {
@@ -73,12 +80,15 @@ if (offersOnly) {
 }
 // Production runs this real schema inspection before accepting guarded requests.
 // Do not replace its middleware, set test readiness flags or bypass its result.
+stage("checking-real-schema");
 const { runSchemaPreflight } = await import("../server/schemaPreflight");
 await runSchemaPreflight();
 const { default: express } = await import("express");
+stage("loading-real-routes");
 const { registerRoutes } = await import("../server/routes");
 const app = express();
 app.use(express.json()); app.use(express.urlencoded({ extended: false }));
+stage("registering-real-routes");
 const server = await registerRoutes(app);
 const dist = path.resolve("dist/public");
 await fs.access(path.join(dist, "index.html"));
@@ -87,4 +97,5 @@ app.get("*", (req, res, next) => req.path.startsWith("/api/") ? next() : res.sen
 await new Promise<void>(resolve => server.listen(5228, "127.0.0.1", resolve));
 await fs.mkdir(output, { recursive: true });
 await fs.writeFile(path.join(output, "fixture.json"), JSON.stringify({ ownerId, businessId: business.id, profileId: profile.id, cartStockId: cartStock.id, otherStockId, base: "http://127.0.0.1:5228" }), { mode: 0o600 });
+stage("fixture-ready");
 console.log("JW_WORKFLOW_READY");

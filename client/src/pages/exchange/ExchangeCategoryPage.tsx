@@ -47,6 +47,7 @@ import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { ExchangeCategorySlug } from "@shared/exchangeListingRules";
 import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME } from "@shared/exchangeListingRules";
+import { JwStoneFabricatorPortalLink } from "@/components/exchange/JwStoneFabricatorPortalLink";
 import { stoneInquiryPath, stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
 import { isStoneRetailListing } from "@shared/exchangeStoneInquiryDraft";
 import { audienceQualifiedStoneMedia } from "./stonePublicUrls";
@@ -567,6 +568,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
         </div>
 
         {/* ── Body: sidebar + grid ── */}
+        {config.slug === "building-materials" && <JwStoneFabricatorPortalLink />}
         <div className="grid grid-cols-1 xl:grid-cols-[260px,1fr] gap-4">
           {/* Desktop sidebar */}
           <Card className="hidden xl:block bg-tsCard border-white/10 h-fit xl:sticky xl:top-20">

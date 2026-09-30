@@ -246,7 +246,7 @@ function slabDimensionsInInches(input: JwStoneSlabDimensionsInput): readonly Sla
   const length = input.length;
   const height = input.height;
   if (typeof length !== "number" || typeof height !== "number" || !Number.isFinite(length) || !Number.isFinite(height) || length <= 0 || height <= 0) return [];
-  const unit = input.unit || "in";
+  const unit = input.unit;
   if (unit !== "in" && unit !== "mm") return [];
   const inchesPerUnit = unit === "mm" ? 1 / 25.4 : 1;
   const dimension = { widthIn: length * inchesPerUnit, heightIn: height * inchesPerUnit };
@@ -266,7 +266,7 @@ function formatEstimatedSlabTotal(estimate: JwStoneSlabCostEstimate): string {
 }
 function cartItemId(stoneKey: string, dimensions: JwStoneSlabDimensionsInput): string {
   const dimensionKey = typeof dimensions === "string" ? dimensions.trim().slice(0, 240)
-    : dimensions ? `${dimensions.length}x${dimensions.height}${dimensions.unit || "in"}` : "unsized";
+    : dimensions ? `${dimensions.length}x${dimensions.height}${dimensions.unit || "unit-unknown"}` : "unsized";
   return `${stoneKey}:${dimensionKey}`;
 }
 

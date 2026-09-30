@@ -7,8 +7,16 @@ import { JwStoneMemberPriceDisplay, JwStoneOfferAction } from "./JwStoneMemberPr
 
 function formatDimensions(dimensions: StoneInventoryDimensions | null): string | null {
   if (!dimensions) return null;
-  const values = [dimensions.length, dimensions.height, dimensions.thickness].filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value > 0);
-  return values.length ? `${values.join(" × ")} ${dimensions.unit || "in"}` : null;
+  const measured = (value: number | null | undefined): value is number =>
+    typeof value === "number" && Number.isFinite(value) && value > 0;
+  const unit = dimensions.unit === "in" || dimensions.unit === "mm" ? dimensions.unit : null;
+  if (measured(dimensions.length) && measured(dimensions.height) && unit) {
+    return `${dimensions.length} × ${dimensions.height}${measured(dimensions.thickness) ? ` × ${dimensions.thickness}` : ""} ${unit}`;
+  }
+  const known = ([
+    ["Length", dimensions.length], ["Height", dimensions.height], ["Thickness", dimensions.thickness],
+  ] as const).flatMap(([label, value]) => measured(value) ? [`${label}: ${value}${unit ? ` ${unit}` : ""}`] : []);
+  return known.length ? `${known.join(" · ")}${unit ? "" : " · Measurement unit needed"}` : null;
 }
 function formatConfirmedDate(value: string): string {
   const parsed = new Date(value);
