@@ -279,6 +279,50 @@ describe("LocalServiceProfileTheme", () => {
     expect(document.body.style.overflow).toBe("");
   });
 
+  it("ignores Window-targeted keyboard and focus events without errors or gallery drift", async () => {
+    const documentListeners = vi.spyOn(document, "addEventListener");
+    const globalErrors: unknown[] = [];
+    const onError = (event: ErrorEvent) => {
+      globalErrors.push(event.error);
+      event.preventDefault();
+    };
+    window.addEventListener("error", onError);
+    let forwardWindowFocus: ((event: FocusEvent) => void) | undefined;
+    try {
+      renderTheme();
+      const opener = container.querySelector<HTMLButtonElement>(
+        '[aria-label="Open Completed project 2"]'
+      )!;
+      act(() => opener.click());
+      const dialog = container.querySelector<HTMLElement>('[role="dialog"]')!;
+      const close = dialog.querySelector<HTMLButtonElement>('[aria-label="Close gallery"]')!;
+      expect(document.activeElement).toBe(close);
+      // Window focus events do not bubble through document. Forward the event
+      // to the registered gallery listener to exercise its non-Node boundary.
+      const focusListener = documentListeners.mock.calls.find(
+        ([type, listener]) => type === "focusin" && typeof listener === "function" && listener.name === "onFocusIn"
+      )?.[1] as ((event: FocusEvent) => void) | undefined;
+      expect(focusListener).toBeDefined();
+      forwardWindowFocus = (event) => focusListener!(event);
+      window.addEventListener("focusin", forwardWindowFocus);
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }));
+        window.dispatchEvent(new FocusEvent("focusin"));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      expect(globalErrors).toEqual([]);
+      expect(dialog.textContent).toContain("2 of 3");
+      expect(document.activeElement).toBe(close);
+      act(() => close.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
+      expect(dialog.textContent).toContain("3 of 3");
+      expect(document.activeElement).toBe(close);
+      expect(globalErrors).toEqual([]);
+    } finally {
+      if (forwardWindowFocus) window.removeEventListener("focusin", forwardWindowFocus);
+      window.removeEventListener("error", onError);
+      documentListeners.mockRestore();
+    }
+  });
   it("restores focus and the prior body lock on Escape and backdrop closure, including one photo", () => {
     document.body.style.overflow = "scroll";
     renderTheme({ galleryItems: [galleryItems[0]] });

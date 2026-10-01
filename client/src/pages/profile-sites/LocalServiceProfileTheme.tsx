@@ -279,7 +279,8 @@ function CompactLocalServiceProfileTheme({
       }, 0);
     };
     const onFocusIn = (event: FocusEvent) => {
-      if (!dialog.contains(event.target as Node)) recoverBodyFocus();
+      if (!(event.target instanceof Node)) return;
+      if (!dialog.contains(event.target)) recoverBodyFocus();
     };
     const modalVisibilityObserver = new MutationObserver(recoverBodyFocus);
     modalVisibilityObserver.observe(document.body, {
@@ -289,7 +290,8 @@ function CompactLocalServiceProfileTheme({
     });
     const onKeyDown = (event: KeyboardEvent) => {
       // Child Radix dialogs own their focus scope and Escape handling.
-      if (event.defaultPrevented || !dialog.contains(event.target as Node)) return;
+      if (event.defaultPrevented || !(event.target instanceof Node)) return;
+      if (!dialog.contains(event.target)) return;
       if (["ArrowLeft", "ArrowRight"].includes(event.key)) event.preventDefault();
       if (event.key === "ArrowLeft" && galleryItems.length > 1) {
         setActiveGalleryIndex((current) =>
