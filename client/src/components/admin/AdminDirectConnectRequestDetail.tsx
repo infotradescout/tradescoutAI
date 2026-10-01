@@ -2,45 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { useAdminObservationClock } from "@/admin/adminQueueState";
+import {
+  parseRequestDetail,
+  readParsed,
+  requestEvidenceState,
+  evidenceTimestamp,
+  requestDetailKey,
+  type RequestDetail,
+} from "./adminDirectConnectEvidence";
 import { AdminDirectConnectOperations } from "./AdminDirectConnectOperations";
-
-type AdminDirectConnectRequestDetailResponse = {
-  request: {
-    id: string;
-    title: string;
-    description: string;
-    category: string | null;
-    countyFips: string | null;
-    status: string | null;
-    source: string | null;
-    createdAt: string | null;
-    updatedAt: string | null;
-  };
-  requester: {
-    id: string;
-    name: string | null;
-    contactVisibility: "withheld";
-  } | null;
-  originatingProfile: {
-    id: string;
-    slug: string;
-    businessName: string;
-    ownerUserId: string;
-  } | null;
-  assignments: Array<{
-    id: string;
-    status: string | null;
-    responderUserId: string | null;
-    responderName: string | null;
-    createdAt: string | null;
-  }>;
-  events: Array<{
-    id: string;
-    type: string;
-    createdAt: string | null;
-  }>;
-  conversationId: string | null;
-};
 
 function formatTimestamp(value: string | null): string {
   if (!value) return "unknown time";
@@ -49,29 +21,57 @@ function formatTimestamp(value: string | null): string {
 }
 
 export function AdminDirectConnectRequestDetail({ requestId }: { requestId: string }) {
-  const { data, isLoading, isError, error } = useQuery<AdminDirectConnectRequestDetailResponse>({
-    queryKey: ["/api/admin/direct-connect/requests", requestId],
-    queryFn: () => apiRequest("GET", `/api/admin/direct-connect/requests/${requestId}`),
+  const now = useAdminObservationClock();
+  const source = useQuery<RequestDetail>({
+    queryKey: requestDetailKey(requestId),
+    queryFn: async () =>
+      parseRequestDetail(
+        await apiRequest(
+          "GET",
+          `/api/admin/direct-connect/requests/${encodeURIComponent(requestId)}`
+        ),
+        requestId
+      ),
+    retry: false,
   });
+  const data = readParsed(source.data, (value) => parseRequestDetail(value, requestId));
+  const sourceState = requestEvidenceState(source, data !== null, now);
+  const current = sourceState === "Current" && !source.isFetching;
+  return (
+    <div className="space-y-4" data-testid="admin-request-detail-evidence">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p role="status" className="text-xs text-white/60">
+          Request source: {sourceState.toLowerCase()}. Last successful read{" "}
+          {evidenceTimestamp(source.dataUpdatedAt)}.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => source.refetch()}
+          disabled={source.isFetching}
+        >
+          Refresh request detail
+        </Button>
+      </div>
+      {!current ? (
+        <p
+          role="status"
+          className="border-y border-amber-400/20 bg-amber-400/5 p-3 text-sm text-amber-100"
+        >
+          Current request context unavailable. Refresh before inviting a provider or sending a staff
+          reply.{" "}
+          {data
+            ? "The saved request below is historical evidence."
+            : "No valid request detail is available."}
+        </p>
+      ) : null}
+      {data ? <RequestRecord data={data} historical={!current} /> : null}
+      <AdminDirectConnectOperations key={requestId} requestId={requestId} />
+    </div>
+  );
+}
 
-  if (isLoading) {
-    return (
-      <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="p-4 text-sm text-white/60">Loading request...</CardContent>
-      </Card>
-    );
-  }
-
-  if (isError || !data) {
-    return (
-      <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="p-4 text-sm text-red-300">
-          Could not load this request{(error as any)?.message ? `: ${(error as any).message}` : "."}
-        </CardContent>
-      </Card>
-    );
-  }
-
+function RequestRecord({ data, historical }: { data: RequestDetail; historical: boolean }) {
   const { request, requester, originatingProfile, assignments, events } = data;
 
   return (
@@ -79,7 +79,9 @@ export function AdminDirectConnectRequestDetail({ requestId }: { requestId: stri
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-white">{request.title}</CardTitle>
-          <Badge variant="outline">{request.status || "unknown"}</Badge>
+          <Badge variant="outline">
+            {historical ? `Previously ${request.status || "unknown"}` : request.status || "unknown"}
+          </Badge>
         </div>
         <CardDescription className="text-[color:var(--text-secondary)]">
           Submitted {formatTimestamp(request.createdAt)} via {request.source || "unknown source"}
@@ -158,13 +160,6 @@ export function AdminDirectConnectRequestDetail({ requestId }: { requestId: stri
             </div>
           )}
         </div>
-
-        <AdminDirectConnectOperations
-          key={request.id}
-          requestId={request.id}
-          countyFips={request.countyFips}
-          status={request.status}
-        />
       </CardContent>
     </Card>
   );

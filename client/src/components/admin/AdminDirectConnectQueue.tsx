@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, RefreshCw, Search } from "lucide-react";
 import { Link } from "wouter";
 import { AdminEmptyState, AdminList, AdminToolbar } from "@/admin/AdminWorkspace";
 import { Badge } from "@/components/ui/badge";
@@ -15,27 +15,16 @@ import {
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 
+import { useAdminObservationClock } from "@/admin/adminQueueState";
+import {
+  parseRequestQueue,
+  readParsed,
+  requestEvidenceState,
+  evidenceTimestamp,
+  type QueueResponse,
+} from "./adminDirectConnectEvidence";
+
 const PAGE_SIZE = 25;
-
-type QueueItem = {
-  id: string;
-  title: string;
-  status: string | null;
-  category: string | null;
-  createdAt: string | null;
-  requesterEmail: string | null;
-  requesterName: string | null;
-  profileSlug: string | null;
-  businessName: string | null;
-  assignmentCount: number;
-  responseCount: number;
-};
-
-type QueueResponse = {
-  requests: QueueItem[];
-  hasMore: boolean;
-  nextOffset: number | null;
-};
 
 function formatDate(value: string | null): string {
   if (!value) return "Unknown date";
@@ -48,6 +37,7 @@ function formatToken(value: string | null): string {
 }
 
 export function AdminDirectConnectQueue() {
+  const now = useAdminObservationClock();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [offset, setOffset] = useState(0);
@@ -60,12 +50,20 @@ export function AdminDirectConnectQueue() {
     if (search.trim()) params.set("search", search.trim());
     return params.toString();
   }, [offset, search, status]);
-  const { data, isError, isFetching, isLoading } = useQuery<QueueResponse>({
+  const source = useQuery<QueueResponse>({
     queryKey: ["/api/admin/direct-connect/requests", query],
-    queryFn: () => apiRequest("GET", `/api/admin/direct-connect/requests?${query}`),
+    queryFn: async () =>
+      parseRequestQueue(
+        await apiRequest("GET", `/api/admin/direct-connect/requests?${query}`),
+        offset
+      ),
+    retry: false,
     refetchInterval: 30_000,
   });
 
+  const data = readParsed(source.data, (value) => parseRequestQueue(value, offset));
+  const sourceState = requestEvidenceState(source, data !== null, now);
+  const current = sourceState === "Current" && !source.isFetching;
   const requests = data?.requests ?? [];
   const pageNumber = Math.floor(offset / PAGE_SIZE) + 1;
 
@@ -106,22 +104,55 @@ export function AdminDirectConnectQueue() {
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          type="button"
+          onClick={() => source.refetch()}
+          disabled={source.isFetching}
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Refresh request queue
+        </Button>
       </AdminToolbar>
+      <p role="status" className="text-xs text-white/60">
+        Queue source: {sourceState.toLowerCase()}. Last successful read{" "}
+        {evidenceTimestamp(source.dataUpdatedAt)}.
+      </p>
 
-      {isLoading ? <div className="px-4 py-10 text-sm text-white/55">Loading requests…</div> : null}
-      {isError ? (
-        <div className="border-y border-red-400/20 bg-red-500/5 px-4 py-5 text-sm text-red-200">
-          The request queue could not be loaded. Try again in a moment.
+      {!current ? (
+        <div
+          role="status"
+          className="border-y border-amber-400/20 bg-amber-400/5 px-4 py-5 text-sm text-amber-100"
+        >
+          {sourceState === "Loading"
+            ? "Loading requests."
+            : "Current request queue unavailable. Refresh before opening a request."}
         </div>
       ) : null}
-      {!isLoading && !isError && requests.length === 0 ? (
+      {!current && requests.length > 0 ? (
+        <details className="border border-white/10 p-3">
+          <summary className="cursor-pointer text-sm text-white/65">
+            Previously loaded queue · historical records
+          </summary>
+          <p className="mt-2 text-xs text-white/50">
+            Saved {evidenceTimestamp(source.dataUpdatedAt)}. These records do not establish current
+            request status.
+          </p>
+          {requests.map((request) => (
+            <div key={request.id} className="border-t border-white/10 py-2 text-sm text-white/60">
+              {request.title} · Previously {formatToken(request.status)}
+            </div>
+          ))}
+        </details>
+      ) : null}
+      {current && requests.length === 0 ? (
         <AdminEmptyState
           title="No matching requests"
           description="Change the status or search text to see a different part of the queue."
         />
       ) : null}
 
-      {requests.length > 0 ? (
+      {current && requests.length > 0 ? (
         <AdminList>
           {requests.map((request) => (
             <article
@@ -165,19 +196,18 @@ export function AdminDirectConnectQueue() {
         </AdminList>
       ) : null}
 
-      {!isLoading && !isError ? (
+      {current ? (
         <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-xs text-white/45">
             Page {pageNumber}
             {requests.length ? ` · Showing ${offset + 1}–${offset + requests.length}` : ""}
-            {isFetching && !isLoading ? " · Refreshing" : ""}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
-              disabled={offset === 0 || isFetching}
+              disabled={offset === 0 || !current}
               onClick={() => setOffset((current) => Math.max(0, current - PAGE_SIZE))}
             >
               <ChevronLeft className="mr-1 h-4 w-4" />
@@ -187,7 +217,7 @@ export function AdminDirectConnectQueue() {
               type="button"
               variant="outline"
               size="sm"
-              disabled={!data?.hasMore || isFetching}
+              disabled={!data?.hasMore || !current}
               onClick={() => setOffset(data?.nextOffset ?? offset + PAGE_SIZE)}
             >
               Next

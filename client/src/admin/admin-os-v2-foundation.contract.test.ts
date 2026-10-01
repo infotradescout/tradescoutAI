@@ -113,7 +113,7 @@ describe("Admin OS v2 foundation", () => {
     expect(taxonomy).toContain('section: "More"');
   });
 
-  it("makes Admin Home an action inbox rather than another tool catalog", () => {
+  it("combines the action inbox with a compact searchable site management directory", () => {
     const home = read("client/src/admin/AdminHome.tsx");
 
     expect(home).toContain("getAdminNavWorkspacesForRole");
@@ -121,9 +121,13 @@ describe("Admin OS v2 foundation", () => {
     expect(home).toContain("Needs action");
     expect(home).toContain("Platform state");
     expect(home).toContain("Common workspaces");
-    expect(home).toContain("No synthetic urgency is added here");
-    expect(home).toContain("No unread admin queues");
-    expect(home).toContain("Unavailable");
+    expect(home).toContain("Counts cover the connected queues, not every site workflow");
+    expect(home).toContain("Site management");
+    expect(home).toContain("Search site management");
+    expect(home).toContain("<details");
+    expect(home).toContain("refreshAdminSources");
+    expect(home).toContain("No pending work in connected queues");
+    expect(home).toContain("adminSourceState");
     expect(home).not.toContain("Admin command center");
     expect(home).not.toContain("Tool index");
     expect(home).not.toContain("Law guardrails");

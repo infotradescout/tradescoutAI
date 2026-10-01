@@ -18,6 +18,11 @@ describe("shared business profile", () => {
   afterEach(() => { act(() => root.unmount()); host.remove(); });
   const render = (props: Partial<Props> = {}) => act(() => root.render(<BusinessProfileTheme {...defaults} {...props} />));
   const click = (selector: string) => act(() => { const button = document.querySelector<HTMLButtonElement>(selector); expect(button).not.toBeNull(); button!.click(); });
+  const failCover = () => act(() => {
+    const image = host.querySelector(".bp-cover img");
+    expect(image).not.toBeNull();
+    image!.dispatchEvent(new Event("error"));
+  });
 
   it("uses one business heading and preserves supplied sentences without new sales paragraphs", () => {
     render({ heroTitle: "Existing Business", heroText: "Owner supplied introduction.", aboutText: "Owner supplied history." });
@@ -61,6 +66,53 @@ describe("shared business profile", () => {
     render({ sharedGallerySlug: "photo-7" });
     expect(document.querySelector('[role="dialog"] img')?.getAttribute("src")).toBe("/gallery/7.jpg");
   });
+  it("recovers the cover with the next supplied photo and opens its original lightbox index", () => {
+    const share = vi.fn((photo) => <a href={`?gallery=${photo.slug}`}>Share photo</a>);
+    render({ renderGalleryShare: share });
+    failCover();
+    expect(host.querySelector(".bp-cover img")?.getAttribute("src")).toBe("/gallery/1.jpg");
+    expect(Array.from(host.querySelectorAll(".bp-gallery article")).map((article) => article.id)).toEqual(photos.slice(0, 4).map((photo) => `profile-gallery-${photo.slug}`));
+    click(".bp-cover-main");
+    expect(document.querySelector('[role="dialog"] img')?.getAttribute("src")).toBe("/gallery/1.jpg");
+    expect(document.querySelector(".bp-lightbox-controls p")?.textContent).toBe("2 / 8");
+    expect(document.querySelector('.bp-lightbox-share a')?.getAttribute("href")).toBe("?gallery=photo-1");
+  });
+  it("cascades through actual media and retains honest business copy and inquiry when exhausted", () => {
+    render({ heroImageUrl: "/cover.jpg", galleryItems: [photos[0], { ...photos[1], imageUrl: "javascript:bad" }, photos[2]], heroText: "Owner supplied introduction." });
+    failCover();
+    expect(host.querySelector(".bp-cover img")?.getAttribute("src")).toBe("/gallery/0.jpg");
+    failCover();
+    expect(host.querySelector(".bp-cover img")?.getAttribute("src")).toBe("/gallery/2.jpg");
+    failCover();
+    expect(host.querySelector('[data-testid="business-profile-cover"]')).toBeNull();
+    expect(host.querySelector('[data-testid="default-profile-brand-hero"]')).not.toBeNull();
+    expect(host.querySelector(".bp-hero")?.textContent).toContain("Owner supplied introduction.");
+    expect(host.querySelector("h1")?.textContent).toBe("Existing Business");
+    click('[data-testid="business-profile-request"]');
+    expect(request).toHaveBeenLastCalledWith();
+    expect(Array.from(host.querySelectorAll("img")).every((image) => ["/cover.jpg", "/gallery/0.jpg", "/gallery/2.jpg"].includes(image.getAttribute("src") || ""))).toBe(true);
+  });
+  it("resets cover failure history when the supplied business or gallery changes", () => {
+    render({ galleryItems: photos.slice(0, 2) });
+    failCover();
+    expect(host.querySelector(".bp-cover img")?.getAttribute("src")).toBe("/gallery/1.jpg");
+    render({ galleryItems: [photos[0], photos[2]] });
+    expect(host.querySelector(".bp-cover img")?.getAttribute("src")).toBe("/gallery/0.jpg");
+    failCover();
+    render({ businessName: "Another supplied business", galleryItems: [photos[0], photos[2]] });
+    expect(host.querySelector(".bp-cover img")?.getAttribute("src")).toBe("/gallery/0.jpg");
+    failCover();
+    render({ businessName: "Another supplied business", heroImageUrl: "/new-cover.jpg", galleryItems: [photos[0], photos[2]] });
+    expect(host.querySelector(".bp-cover img")?.getAttribute("src")).toBe("/new-cover.jpg");
+  });
+  it("preserves the shared selection when the cover falls back", () => {
+    const share = vi.fn((photo) => <a href={`?gallery=${photo.slug}`}>Share photo</a>);
+    render({ sharedGallerySlug: "photo-3", renderGalleryShare: share });
+    failCover();
+    expect(document.querySelector('[role="dialog"] img')?.getAttribute("src")).toBe("/gallery/3.jpg");
+    expect(document.querySelector('.bp-lightbox-share a')?.getAttribute("href")).toBe("?gallery=photo-3");
+    expect(host.querySelector(".bp-photo--selected")?.id).toBe("profile-gallery-photo-3");
+  });
   it("retains gallery sharing and does not invent a shareable gallery slug for a standalone cover", () => {
     const share = vi.fn((photo) => <a href={`?gallery=${photo.slug}`}>Share photo</a>);
     render({ heroImageUrl: "/cover.jpg", renderGalleryShare: share });
@@ -102,7 +154,10 @@ describe("shared business profile", () => {
     render({ brandColors: { background: "#ffffff", surface: "#ffffff", primary: "bad; background:url(unsafe)" }, lightTrustActions: <span data-testid="light-trust">Light trust</span> });
     const main = host.querySelector<HTMLElement>("main")!;
     expect(main.style.getPropertyValue("--profile-primary")).toBe("#f97316");
+    expect(main.style.getPropertyValue("--profile-primary-soft")).toBe("rgba(249,115,22,0.16)");
     expect(main.style.getPropertyValue("--bp-fg")).toBe("#111418");
     expect(host.querySelector('[data-testid="light-trust"]')).not.toBeNull();
+    render({ brandColors: { primary: "#123abc" }, shareAction: <button style={{ backgroundColor: "var(--profile-primary-soft)" }}>Share profile</button> });
+    expect(main.style.getPropertyValue("--profile-primary-soft")).toBe("rgba(18,58,188,0.16)");
   });
 });

@@ -30,9 +30,11 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { adminSourceState, useAdminObservationClock } from "@/admin/adminQueueState";
 
 type AdminProjectRow = {
   project: {
@@ -122,6 +124,21 @@ type PendingVerificationDocRow = {
   } | null;
 };
 
+function validVerificationRows(value: unknown): value is PendingVerificationDocRow[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (row) =>
+        row &&
+        typeof row === "object" &&
+        row.document &&
+        typeof row.document === "object" &&
+        typeof row.document.id === "string" &&
+        row.document.id.trim().length > 0
+    )
+  );
+}
+
 type ProjectForm = {
   title: string;
   summary: string;
@@ -191,9 +208,7 @@ function eligibilityReason(
 
 function ProjectStatusBadge({ status }: { status: string }) {
   if (status === "open") {
-    return (
-      <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">Open</Badge>
-    );
+    return <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">Open</Badge>;
   }
   if (status === "awarded") {
     return <Badge className="border-sky-400/25 bg-sky-400/10 text-sky-200">Awarded</Badge>;
@@ -201,9 +216,7 @@ function ProjectStatusBadge({ status }: { status: string }) {
   if (status === "closed") {
     return <Badge className="border-amber-400/25 bg-amber-400/10 text-amber-100">Closed</Badge>;
   }
-  return (
-    <Badge className="border-white/15 bg-white/5 text-white/52">{readable(status)}</Badge>
-  );
+  return <Badge className="border-white/15 bg-white/5 text-white/52">{readable(status)}</Badge>;
 }
 
 function BidStatusBadge({ status }: { status: ProjectBidRow["bid"]["status"] }) {
@@ -216,16 +229,26 @@ function BidStatusBadge({ status }: { status: ProjectBidRow["bid"]["status"] }) 
   if (status === "rejected") {
     return <Badge className="border-red-400/25 bg-red-400/10 text-red-100">Rejected</Badge>;
   }
-  return (
-    <Badge className="border-white/15 bg-white/5 text-white/52">{readable(status)}</Badge>
-  );
+  return <Badge className="border-white/15 bg-white/5 text-white/52">{readable(status)}</Badge>;
 }
 
 export default function AdminCommercialDirectoryPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const observationNow = useAdminObservationClock();
 
-  const [activeTab, setActiveTab] = useState("projects");
+  const [location] = useLocation();
+  const [activeTab, setActiveTab] = useState(() =>
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("tab") === "verification"
+      ? "verification"
+      : "projects"
+  );
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("tab") === "verification") {
+      setActiveTab("verification");
+    }
+  }, [location]);
   const [files, setFiles] = useState<File[]>([]);
   const [addendaFiles, setAddendaFiles] = useState<File[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState("");
@@ -245,12 +268,24 @@ export default function AdminCommercialDirectoryPage() {
   const verificationQuery = useQuery<PendingVerificationDocRow[]>({
     queryKey: ["/api/admin/commercial-directory/verification/pending"],
     queryFn: () =>
-      apiRequest(
-        "GET",
-        "/api/admin/commercial-directory/verification/pending"
-      ) as Promise<PendingVerificationDocRow[]>,
+      apiRequest("GET", "/api/admin/commercial-directory/verification/pending") as Promise<
+        PendingVerificationDocRow[]
+      >,
     retry: false,
   });
+  const verificationObservationState = adminSourceState({
+    loading: verificationQuery.isLoading,
+    error: verificationQuery.isError,
+    observedAt: verificationQuery.dataUpdatedAt,
+    now: observationNow,
+  });
+  const verificationPayloadValid = validVerificationRows(verificationQuery.data);
+  const verificationSourceState =
+    verificationObservationState === "Current" && !verificationPayloadValid
+      ? "Unavailable"
+      : verificationObservationState;
+  const verificationCurrent = verificationSourceState === "Current" && verificationPayloadValid;
+  const verificationActionsReady = verificationCurrent && !verificationQuery.isFetching;
 
   const detailQuery = useQuery<ProjectDetailPayload>({
     queryKey: ["/api/commercial-directory/projects/detail", selectedProjectId],
@@ -287,15 +322,15 @@ export default function AdminCommercialDirectoryPage() {
   }, [detailQuery.data]);
 
   useEffect(() => {
-    const documents = verificationQuery.data || [];
-    if (!documents.length) {
+    const documents = validVerificationRows(verificationQuery.data) ? verificationQuery.data : [];
+    if (!verificationCurrent || !documents.length) {
       setSelectedVerificationDocId("");
       return;
     }
     if (!documents.some((row) => row.document.id === selectedVerificationDocId)) {
       setSelectedVerificationDocId(documents[0].document.id);
     }
-  }, [selectedVerificationDocId, verificationQuery.data]);
+  }, [selectedVerificationDocId, verificationQuery.data, verificationCurrent]);
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -397,7 +432,13 @@ export default function AdminCommercialDirectoryPage() {
   });
 
   const bidActionMutation = useMutation({
-    mutationFn: ({ bidId, action }: { bidId: string; action: "shortlist" | "reject" | "accept" }) => {
+    mutationFn: ({
+      bidId,
+      action,
+    }: {
+      bidId: string;
+      action: "shortlist" | "reject" | "accept";
+    }) => {
       if (!selectedProjectId) throw new Error("Select a project");
       return apiRequest(
         "PUT",
@@ -438,7 +479,7 @@ export default function AdminCommercialDirectoryPage() {
         { approved }
       ),
     onSuccess: (_result, variables) => {
-      const documents = verificationQuery.data || [];
+      const documents = validVerificationRows(verificationQuery.data) ? verificationQuery.data : [];
       const index = documents.findIndex((row) => row.document.id === variables.documentId);
       setSelectedVerificationDocId(
         documents[index + 1]?.document.id || documents[index - 1]?.document.id || ""
@@ -449,6 +490,7 @@ export default function AdminCommercialDirectoryPage() {
       queryClient.invalidateQueries({
         queryKey: ["/api/admin/commercial-directory/projects/bids"],
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tool-notifications"] });
       toast({ title: "Verification reviewed" });
     },
     onError: (error: unknown) => {
@@ -464,6 +506,7 @@ export default function AdminCommercialDirectoryPage() {
     const handleKeyboardReview = (event: KeyboardEvent) => {
       if (
         activeTab !== "verification" ||
+        !verificationActionsReady ||
         !selectedVerificationDocId ||
         reviewVerificationMutation.isPending
       ) {
@@ -482,7 +525,7 @@ export default function AdminCommercialDirectoryPage() {
     };
     window.addEventListener("keydown", handleKeyboardReview);
     return () => window.removeEventListener("keydown", handleKeyboardReview);
-  }, [activeTab, reviewVerificationMutation, selectedVerificationDocId]);
+  }, [activeTab, reviewVerificationMutation, selectedVerificationDocId, verificationActionsReady]);
 
   const canSubmit = useMemo(
     () =>
@@ -496,15 +539,14 @@ export default function AdminCommercialDirectoryPage() {
   );
 
   const projects = projectsQuery.data || [];
-  const pendingDocuments = verificationQuery.data || [];
-  const selectedProjectRow =
-    projects.find((row) => row.project.id === selectedProjectId) || null;
+  const pendingDocuments = validVerificationRows(verificationQuery.data)
+    ? verificationQuery.data
+    : [];
+  const selectedProjectRow = projects.find((row) => row.project.id === selectedProjectId) || null;
   const bids = bidsQuery.data || [];
   const filteredBids = useMemo(
     () =>
-      bidStatusFilter === "all"
-        ? bids
-        : bids.filter((row) => row.bid.status === bidStatusFilter),
+      bidStatusFilter === "all" ? bids : bids.filter((row) => row.bid.status === bidStatusFilter),
     [bidStatusFilter, bids]
   );
   const stats = useMemo(
@@ -552,7 +594,11 @@ export default function AdminCommercialDirectoryPage() {
               Refresh
             </Button>
             <a href="/admin/commercial-contractors">
-              <Button type="button" variant="outline" className="border-white/12 bg-transparent text-white/65">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-white/12 bg-transparent text-white/65"
+              >
                 Commercial businesses
               </Button>
             </a>
@@ -581,12 +627,11 @@ export default function AdminCommercialDirectoryPage() {
             },
             {
               label: "Pending verification",
-              value: verificationQuery.isError ? "—" : pendingDocuments.length,
-              detail: verificationQuery.isError
-                ? "Verification source unavailable"
-                : `${stats.documents} project documents`,
-              tone:
-                verificationQuery.isError || pendingDocuments.length > 0 ? "warning" : "good",
+              value: verificationCurrent ? pendingDocuments.length : "Unknown",
+              detail: verificationCurrent
+                ? "Pending license and insurance evidence"
+                : `Verification source ${verificationSourceState.toLowerCase()}`,
+              tone: !verificationCurrent || pendingDocuments.length > 0 ? "warning" : "good",
             },
           ]}
         />
@@ -600,7 +645,7 @@ export default function AdminCommercialDirectoryPage() {
               ["bids", `Bid Review${bids.length ? ` (${bids.length})` : ""}`],
               [
                 "verification",
-                `Verification${pendingDocuments.length ? ` (${pendingDocuments.length})` : ""}`,
+                `Verification${verificationCurrent && pendingDocuments.length ? ` (${pendingDocuments.length})` : ""}`,
               ],
               ["create", "New Project"],
             ].map(([value, label]) => (
@@ -743,7 +788,9 @@ export default function AdminCommercialDirectoryPage() {
                       />
                       <MetricCell
                         label="Timeline"
-                        value={row.bid.timelineDays ? `${row.bid.timelineDays} days` : "Not provided"}
+                        value={
+                          row.bid.timelineDays ? `${row.bid.timelineDays} days` : "Not provided"
+                        }
                       />
                       {row.eligibility?.isEligible === false ? (
                         <Badge className="border-amber-400/25 bg-amber-400/10 text-amber-100">
@@ -759,7 +806,8 @@ export default function AdminCommercialDirectoryPage() {
                       {row.eligibility?.isEligible === false ? (
                         <div className="flex items-start gap-3 border-y border-amber-400/20 bg-amber-400/5 px-3 py-3 text-sm text-amber-100">
                           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                          Ineligible for shortlist or award: {eligibilityReason(row.eligibility.reason)}
+                          Ineligible for shortlist or award:{" "}
+                          {eligibilityReason(row.eligibility.reason)}
                         </div>
                       ) : null}
                       <p className="whitespace-pre-wrap text-sm leading-6 text-white/58">
@@ -833,18 +881,29 @@ export default function AdminCommercialDirectoryPage() {
           >
             <AdminToolbar>
               <div className="text-xs text-white/42">
-                Shortcuts: <kbd className="border border-white/12 px-1.5 py-0.5">A</kbd> approve · {" "}
+                Shortcuts: <kbd className="border border-white/12 px-1.5 py-0.5">A</kbd> approve ·{" "}
                 <kbd className="border border-white/12 px-1.5 py-0.5">R</kbd> reject
               </div>
               <span className="text-xs text-white/35">
-                {pendingDocuments.length} pending document{pendingDocuments.length === 1 ? "" : "s"}
+                {verificationCurrent
+                  ? `${pendingDocuments.length} pending document${pendingDocuments.length === 1 ? "" : "s"}`
+                  : `${verificationSourceState} · pending document count unknown`}
               </span>
             </AdminToolbar>
+            <p className="mt-3 text-xs text-white/50" role="status">
+              Verification source: {verificationSourceState.toLowerCase()}. Fetched{" "}
+              {verificationQuery.dataUpdatedAt
+                ? new Date(verificationQuery.dataUpdatedAt).toLocaleString()
+                : "not recorded"}
+              . Refresh before reviewing stale evidence.
+            </p>
 
             {verificationQuery.isLoading ? (
               <QueueLoading label="Loading verification documents…" />
             ) : verificationQuery.isError ? (
               <QueueUnavailable label="Commercial verification queue is unavailable." />
+            ) : !verificationCurrent ? (
+              <QueueUnavailable label="Commercial verification queue observation is stale or unavailable. Refresh before reviewing documents." />
             ) : pendingDocuments.length ? (
               <AdminList className="mt-4">
                 {pendingDocuments.map((row) => (
@@ -884,7 +943,7 @@ export default function AdminCommercialDirectoryPage() {
                         type="button"
                         size="sm"
                         variant="destructive"
-                        disabled={reviewVerificationMutation.isPending}
+                        disabled={reviewVerificationMutation.isPending || !verificationActionsReady}
                         onClick={() =>
                           reviewVerificationMutation.mutate({
                             documentId: row.document.id,
@@ -897,7 +956,7 @@ export default function AdminCommercialDirectoryPage() {
                       <Button
                         type="button"
                         size="sm"
-                        disabled={reviewVerificationMutation.isPending}
+                        disabled={reviewVerificationMutation.isPending || !verificationActionsReady}
                         onClick={() =>
                           reviewVerificationMutation.mutate({
                             documentId: row.document.id,
@@ -915,7 +974,7 @@ export default function AdminCommercialDirectoryPage() {
             ) : (
               <AdminEmptyState
                 title="No pending verification documents"
-                description="All commercial license and insurance evidence has been reviewed."
+                description="The current source reports no pending license or insurance evidence."
               />
             )}
           </AdminSection>
@@ -999,7 +1058,11 @@ function ProjectControl({
       className="pt-0"
       actions={
         <a href={`/commercial/p/${details.project.slug}`} target="_blank" rel="noreferrer">
-          <Button type="button" variant="outline" className="border-white/12 bg-transparent text-white/65">
+          <Button
+            type="button"
+            variant="outline"
+            className="border-white/12 bg-transparent text-white/65"
+          >
             Open landing page
           </Button>
         </a>
@@ -1098,9 +1161,7 @@ function ProjectControl({
             <Input
               type="file"
               multiple
-              onChange={(event) =>
-                onAddendaFilesChange(Array.from(event.target.files || []))
-              }
+              onChange={(event) => onAddendaFilesChange(Array.from(event.target.files || []))}
               className="mt-2 border-white/10 bg-black/20 text-white"
             />
             <p className="mt-2 text-xs text-white/32">
@@ -1175,7 +1236,10 @@ function CreateProjectForm({
               onChange={(event) =>
                 update(
                   "stateCode",
-                  event.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2)
+                  event.target.value
+                    .toUpperCase()
+                    .replace(/[^A-Z]/g, "")
+                    .slice(0, 2)
                 )
               }
               placeholder="LA"
@@ -1331,7 +1395,9 @@ function FormField({
   children: ReactNode;
 }) {
   return (
-    <label className={`space-y-1 text-xs text-white/42 ${wide ? "md:col-span-2 xl:col-span-3" : ""}`}>
+    <label
+      className={`space-y-1 text-xs text-white/42 ${wide ? "md:col-span-2 xl:col-span-3" : ""}`}
+    >
       <span>{label}</span>
       {children}
     </label>
@@ -1354,9 +1420,7 @@ function TextBlock({ title, children }: { title: string; children: ReactNode }) 
 function ProjectMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-b border-white/10 px-4 py-4 last:border-b-0 sm:border-r sm:last:border-r-0 xl:border-b-0">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
-        {label}
-      </p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">{label}</p>
       <p className="mt-2 text-lg font-semibold text-white">{value}</p>
     </div>
   );
@@ -1365,9 +1429,7 @@ function ProjectMetric({ label, value }: { label: string; value: string }) {
 function MetricCell({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
-        {label}
-      </p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">{label}</p>
       <p className="mt-2 text-sm font-semibold text-white/68">{value}</p>
     </div>
   );

@@ -59,6 +59,6 @@ describe("admin direct-connect 'Review request' link", () => {
     expect(page).toContain("AdminDirectConnectRequestCard");
 
     const detailComponent = read("client/src/components/admin/AdminDirectConnectRequestDetail.tsx");
-    expect(detailComponent).toContain("/api/admin/direct-connect/requests/${requestId}");
+    expect(detailComponent).toContain("/api/admin/direct-connect/requests/${encodeURIComponent(requestId)}");
   });
 });

@@ -55,6 +55,8 @@ const ADMIN_NAV_WORKSPACES: AdminNavWorkspaceDefinition[] = [
         id: "business-verifications",
         label: "Business Verification",
       },
+      { id: "professional-verification", label: "Professional Credentials" },
+      { id: "contractor-settings", label: "Business Provider Settings" },
       { id: "moderation" },
       {
         id: "business-directory-ops",
@@ -78,6 +80,11 @@ const ADMIN_NAV_WORKSPACES: AdminNavWorkspaceDefinition[] = [
         id: "crm",
         label: "Sales Pipeline",
       },
+      { id: "tradepartner-interest", label: "Partner Interest" },
+      { id: "tradepartner-rsvps", label: "Event Attendance" },
+      { id: "homescout-listings", label: "HomeScout Listings" },
+      { id: "homescout-sources", label: "HomeScout Sources" },
+      { id: "commercial-contractors", label: "Commercial Providers" },
     ],
   },
   {
@@ -95,6 +102,9 @@ const ADMIN_NAV_WORKSPACES: AdminNavWorkspaceDefinition[] = [
         id: "discovery-observatory",
         label: "Discovery",
       },
+      { id: "cumulus-intelligence", label: "County Commercial Signals" },
+      { id: "platform-analytics" },
+      { id: "business-import" },
     ],
   },
   {
@@ -103,7 +113,8 @@ const ADMIN_NAV_WORKSPACES: AdminNavWorkspaceDefinition[] = [
       {
         id: "ecosystem-truth",
         label: "Ecosystem Truth",
-        description: "See current owners, decision evidence, commercial conflicts, and outcome links.",
+        description:
+          "See current owners, decision evidence, commercial conflicts, and outcome links.",
       },
       {
         id: "production-acceptance",
@@ -116,6 +127,12 @@ const ADMIN_NAV_WORKSPACES: AdminNavWorkspaceDefinition[] = [
       },
       { id: "scout-resilience" },
       { id: "errors" },
+      { id: "attachments" },
+      { id: "notifications", label: "Notifications" },
+      { id: "ads", label: "Advertisements" },
+      { id: "prizes" },
+      { id: "share-links" },
+      { id: "audit-log" },
       {
         id: "panel",
         label: "Platform Settings",
@@ -133,6 +150,9 @@ const ADMIN_NAV_WORKSPACES: AdminNavWorkspaceDefinition[] = [
         id: "finance",
         label: "Finance",
       },
+      { id: "vault-contributions" },
+      { id: "affiliates" },
+      { id: "pricing" },
     ],
   },
 ];
@@ -162,7 +182,7 @@ export function getAdminNavWorkspacesForRole(
   const workspaces = ADMIN_NAV_WORKSPACES.map((workspace) => {
     const items = workspace.tools.flatMap((definition) => {
       const tool = toolById.get(definition.id);
-      if (!tool || tool.navHidden === true || !canSeeAdminTool(tool, role, isSuperAdminFlag)) {
+      if (!tool || !canSeeAdminTool(tool, role, isSuperAdminFlag)) {
         return [];
       }
       includedIds.add(tool.id);
@@ -185,4 +205,21 @@ export function getAdminNavWorkspacesForRole(
   }
 
   return workspaces;
+}
+
+/** Every permitted registered route remains discoverable, including compatibility tools. */
+export function getAdminSearchWorkspacesForRole(
+  role: AdminRole,
+  isSuperAdminFlag?: boolean
+): AdminToolSection[] {
+  const workspaces = getAdminNavWorkspacesForRole(role, isSuperAdminFlag);
+  const included = new Set(
+    workspaces.flatMap((workspace) => workspace.items.map((tool) => tool.id))
+  );
+  const additional = getAllAdminTools()
+    .filter((tool) => !included.has(tool.id) && canSeeAdminTool(tool, role, isSuperAdminFlag))
+    .map(getAdminToolPresentation);
+  return additional.length
+    ? [...workspaces, { section: "Additional tools & older routes", items: additional }]
+    : workspaces;
 }

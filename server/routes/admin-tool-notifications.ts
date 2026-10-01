@@ -2,199 +2,49 @@ import { Router, type Request, type Response } from "express";
 import { pool } from "../db/pg";
 import { isAuthenticated } from "../auth";
 
+import {
+  loadAdminQueueSnapshot,
+  projectAdminQueueSnapshot,
+  type AdminQueueSnapshot,
+} from "../services/adminQueueSummary";
+
 const router = Router();
 
 router.use(isAuthenticated);
 
-type NotificationCounts = {
-  tradepartnerRsvpsPending: number;
-  addressVerificationsPending: number;
-  professionalVerificationsPending: number;
-  contractorVerificationDocsPending: number;
-};
-
 const NOTIFICATION_COUNTS_CACHE_TTL_MS = 30_000;
-let notificationCountsCache: { counts: NotificationCounts; expiresAt: number } | null = null;
-let notificationCountsInFlight: Promise<NotificationCounts> | null = null;
-
-function getPgErrorCode(error: unknown): string {
-  const code =
-    typeof error === "object" && error && "code" in error
-      ? String((error as { code?: string }).code)
-      : "";
-  return code;
+let notificationCountsCache: { snapshot: AdminQueueSnapshot; expiresAt: number } | null = null;
+let notificationCountsInFlight: Promise<AdminQueueSnapshot> | null = null;
+function normalizeAdminRole(value: unknown): string {
+  const role = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  return role === "owner" || role === "head_admin" ? "super_admin" : role;
 }
 
-function isIgnorableSchemaError(error: unknown): boolean {
-  const code = getPgErrorCode(error);
-  return (
-    code === "42P01" || // undefined_table
-    code === "42703" || // undefined_column
-    code === "42883" || // undefined_function
-    code === "42P18" // indeterminate_datatype
-  );
-}
-
-async function safeCount(query: string, params: unknown[] = []): Promise<number> {
-  const result = await pool.query(query, params);
-  return Number(result.rows?.[0]?.count || 0);
-}
-
-async function safeCountWithFallback(
-  queries: Array<{ query: string; params?: unknown[] }>
-): Promise<number> {
-  let lastError: unknown = null;
-
-  for (const candidate of queries) {
-    try {
-      return await safeCount(candidate.query, candidate.params || []);
-    } catch (error) {
-      if (!isIgnorableSchemaError(error)) throw error;
-      lastError = error;
-    }
+async function getNotificationCountsCached(): Promise<AdminQueueSnapshot> {
+  if (notificationCountsCache && notificationCountsCache.expiresAt > Date.now()) {
+    return notificationCountsCache.snapshot;
   }
-
-  if (lastError) {
-    console.warn("[admin-tool-notifications] using zero fallback after schema drift:", lastError);
-  }
-
-  return 0;
-}
-
-async function loadNotificationCounts(): Promise<NotificationCounts> {
-  const [
-    tradepartnerRsvpsPending,
-    addressVerificationsPending,
-    realtorVerificationsPending,
-    carSalesVerificationsPending,
-    contractorVerificationDocsPending,
-  ] = await Promise.all([
-    safeCountWithFallback([
-      {
-        query: `
-        select count(*)::int as count
-        from tradepartner_rsvp_submissions
-        where coalesce(attendance_status, 'pending') = 'pending'
-      `,
-      },
-      {
-        query: `
-        select count(*)::int as count
-        from tradepartner_rsvp_submissions
-      `,
-      },
-    ]),
-    safeCountWithFallback([
-      {
-        query: `
-        select count(*)::int as count
-        from address_verifications
-        where status::text in ('pending', 'submitted', 'under_review', 'in_review')
-      `,
-      },
-      {
-        query: `
-        select count(*)::int as count
-        from address_verifications
-        where status = 'pending'
-      `,
-      },
-      {
-        query: `
-        select count(*)::int as count
-        from address_verifications
-      `,
-      },
-    ]),
-    safeCountWithFallback([
-      {
-        query: `
-        select count(*)::int as count
-        from realtor_profiles
-        where coalesce(verification_status::text, 'pending') in ('pending', 'under_review', 'in_review')
-      `,
-      },
-      {
-        query: `
-        select count(*)::int as count
-        from realtor_profiles
-      `,
-      },
-    ]),
-    safeCountWithFallback([
-      {
-        query: `
-        select count(*)::int as count
-        from car_salesman_profiles
-        where coalesce(verification_status::text, 'pending') in ('pending', 'under_review', 'in_review')
-      `,
-      },
-      {
-        query: `
-        select count(*)::int as count
-        from car_salesman_profiles
-      `,
-      },
-    ]),
-    safeCountWithFallback([
-      {
-        query: `
-        select count(*)::int as count
-        from verification_documents
-        where status = 'pending'
-          and type in ('license', 'insurance')
-      `,
-      },
-      {
-        query: `
-        select count(*)::int as count
-        from verification_documents
-        where status = 'pending'
-      `,
-      },
-      {
-        query: `
-        select count(*)::int as count
-        from verification_documents
-      `,
-      },
-    ]),
-  ]);
-
-  return {
-    tradepartnerRsvpsPending,
-    addressVerificationsPending,
-    professionalVerificationsPending: realtorVerificationsPending + carSalesVerificationsPending,
-    contractorVerificationDocsPending,
-  };
-}
-
-async function getNotificationCountsCached(): Promise<NotificationCounts> {
-  const now = Date.now();
-  if (notificationCountsCache && notificationCountsCache.expiresAt > now) {
-    return notificationCountsCache.counts;
-  }
-
-  if (notificationCountsInFlight) {
-    return notificationCountsInFlight;
-  }
-
-  notificationCountsInFlight = loadNotificationCounts()
-    .then((counts) => {
+  if (notificationCountsInFlight) return notificationCountsInFlight;
+  notificationCountsInFlight = loadAdminQueueSnapshot((sql) => pool.query(sql))
+    .then((snapshot) => {
       notificationCountsCache = {
-        counts,
+        snapshot,
         expiresAt: Date.now() + NOTIFICATION_COUNTS_CACHE_TTL_MS,
       };
-      return counts;
+      return snapshot;
     })
     .finally(() => {
       notificationCountsInFlight = null;
     });
-
   return notificationCountsInFlight;
 }
 
 router.get("/", async (_req: Request, res: Response) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  res.vary("Cookie");
+  res.vary("Authorization");
   try {
     const req = _req as any;
     const role = String(req?.user?.activeRole || req?.user?.role || "")
@@ -222,38 +72,41 @@ router.get("/", async (_req: Request, res: Response) => {
       return res.status(403).json({ message: "Admin access required" });
     }
 
-    const counts = await getNotificationCountsCached();
-
-    const byTool: Record<string, number> = {
-      "tradepartner-rsvps": counts.tradepartnerRsvpsPending,
-      verification: counts.addressVerificationsPending,
-      "professional-verification":
-        counts.professionalVerificationsPending + counts.contractorVerificationDocsPending,
-      "contractor-settings": counts.contractorVerificationDocsPending,
-    };
-
-    const totalUnread = Object.values(byTool).reduce((sum, value) => sum + Number(value || 0), 0);
-
-    return res.json({
-      updatedAt: new Date().toISOString(),
-      totalUnread,
-      byTool,
-      counts,
+    // Authentication binds the persisted actor to req.user before this handler.
+    // Use its primary role, like /api/admin/health; session arrays do not broaden the summary.
+    const actorId = req?.user?.id || req?.user?.claims?.sub || null;
+    const effectiveRole = normalizeAdminRole(req?.user?.role);
+    const adminRoles = ["super_admin", "ops_admin", "moderator"];
+    const queueScopeAvailable = Boolean(actorId && adminRoles.includes(effectiveRole));
+    const queueSummary = queueScopeAvailable
+      ? projectAdminQueueSnapshot(await getNotificationCountsCached(), effectiveRole)
+      : {
+          message: "Admin queue scope unavailable",
+          updatedAt: null,
+          countsAvailable: false,
+          partiallyAvailable: false,
+          totalUnread: null,
+          byTool: {},
+          counts: {},
+        };
+    const noQueueSourceAvailable = Object.values(queueSummary.byTool).every(
+      (count) => count === null
+    );
+    return res.status(noQueueSourceAvailable ? 503 : 200).json({
+      ...queueSummary,
+      queueScopeAvailable,
+      degraded: !queueSummary.countsAvailable,
     });
   } catch (error) {
     console.error("[admin-tool-notifications] failed:", error);
-    // Never hard-fail admin navigation dots; degrade to zero counts.
-    return res.json({
+    // Preserve an explicit unavailable state when the summary cannot be read.
+    return res.status(503).json({
       degraded: true,
       message: "Failed to load admin tool notifications",
-      totalUnread: 0,
+      countsAvailable: false,
+      totalUnread: null,
       byTool: {},
-      counts: {
-        tradepartnerRsvpsPending: 0,
-        addressVerificationsPending: 0,
-        professionalVerificationsPending: 0,
-        contractorVerificationDocsPending: 0,
-      },
+      counts: {},
       updatedAt: new Date().toISOString(),
     });
   }
