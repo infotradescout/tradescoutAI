@@ -323,6 +323,39 @@ describe("LocalServiceProfileTheme", () => {
       documentListeners.mockRestore();
     }
   });
+  it("closes on the first focused Escape after reopen before document Escape registration", () => {
+    // Reproduce the observed startup gap without replacing native rendering:
+    // defer only document capture-key listeners while the gallery is mounted.
+    const nativeAddEventListener = document.addEventListener.bind(document);
+    const delayedRegistration = vi.spyOn(document, "addEventListener").mockImplementation(
+      (type, listener, options) => {
+        if (type === "keydown" && typeof options === "object" && options.capture) return;
+        nativeAddEventListener(type, listener, options);
+      }
+    );
+    try {
+      document.body.style.overflow = "scroll";
+      renderTheme();
+      const opener = container.querySelector<HTMLButtonElement>(
+        '[aria-label="Open Completed project 2"]'
+      )!;
+      act(() => opener.click());
+      act(() => container.querySelector<HTMLButtonElement>('[aria-label="Close gallery"]')!.click());
+      expect(container.querySelector('[role="dialog"]')).toBeNull();
+      act(() => opener.click());
+      const close = container.querySelector<HTMLButtonElement>('[aria-label="Close gallery"]')!;
+      expect(document.activeElement).toBe(close);
+      const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+      act(() => close.dispatchEvent(escape));
+      expect(escape.defaultPrevented).toBe(true);
+      expect(container.querySelector('[role="dialog"]')).toBeNull();
+      expect(document.activeElement).toBe(opener);
+      expect(document.body.style.overflow).toBe("scroll");
+      expect(onDirectConnect).not.toHaveBeenCalled();
+    } finally {
+      delayedRegistration.mockRestore();
+    }
+  });
   it("restores focus and the prior body lock on Escape and backdrop closure, including one photo", () => {
     document.body.style.overflow = "scroll";
     renderTheme({ galleryItems: [galleryItems[0]] });
@@ -443,6 +476,8 @@ describe("LocalServiceProfileTheme", () => {
     expect(container.querySelector('[role="dialog"]')).toBe(gallery);
     expect(gallery.contains(document.activeElement)).toBe(true);
     expect(document.body.style.overflow).toBe("hidden");
+    expect(gallery.textContent).toContain("2 of 3");
+    expect(document.activeElement).not.toBe(opener);
     act(() =>
       document.activeElement?.dispatchEvent(
         new KeyboardEvent("keydown", { key: "Escape", bubbles: true })

@@ -952,6 +952,21 @@ function CompactLocalServiceProfileTheme({
             tabIndex={-1}
             aria-describedby={undefined}
             onCloseAutoFocus={(event) => event.preventDefault()}
+            onKeyDownCapture={(event) => {
+              // A just-opened Radix layer may not yet own document Escape.
+              // Portal events can bubble through React without belonging to
+              // this gallery's DOM, and a child modal hides the parent scope.
+              if (
+                event.key !== "Escape" ||
+                event.defaultPrevented ||
+                !(event.target instanceof Node) ||
+                !event.currentTarget.contains(event.target) ||
+                !event.currentTarget.contains(document.activeElement) ||
+                event.currentTarget.closest('[aria-hidden="true"]')
+              ) return;
+              event.preventDefault();
+              setActiveGalleryIndex(null);
+            }}
             aria-label={`${businessName} photo gallery`}
             onMouseDown={(event) => {
               if (event.target === event.currentTarget) setActiveGalleryIndex(null);

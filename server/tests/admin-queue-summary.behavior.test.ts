@@ -6,12 +6,8 @@ import { loadAdminQueueSnapshot, projectAdminQueueSnapshot } from "../services/a
 const fixture = vi.hoisted(() => ({
   query: vi.fn(),
   actorId: "operator" as string | null,
-  presence: vi.fn(),
 }));
 vi.mock("../db/pg", () => ({ pool: { query: fixture.query } }));
-vi.mock("../services/presenceCustomerTasks", () => ({
-  presenceCustomerTaskHealth: fixture.presence,
-}));
 vi.mock("../auth", () => ({
   isAuthenticated: (req: any, res: any, next: any) => {
     if (!req.headers["x-role"]) return res.status(401).end();
@@ -33,7 +29,6 @@ beforeEach(() => {
   vi.resetModules();
   vi.resetAllMocks();
   fixture.actorId = "operator";
-  fixture.presence.mockResolvedValue({ observedAt: new Date().toISOString() });
   fixture.query.mockImplementation(async (sql: string) => ({
     rows: [
       {
@@ -89,27 +84,32 @@ describe("actual admin tool notifications route", () => {
     expect(response.body.byTool).not.toHaveProperty("professional-verification");
     expect(response.body.counts).not.toHaveProperty("professionalVerificationsPending");
   });
-  it("withholds queue scope but preserves independently authorized Presence if the actor cannot be resolved", async () => {
+  it("returns 503 and unknown queue counts if the authenticated actor cannot be resolved", async () => {
     fixture.actorId = null;
     const response = await request(await app())
       .get("/api/admin/tool-notifications")
       .set("x-role", "super_admin");
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(503);
     expect(response.body.totalUnread).toBeNull();
     expect(response.body.queueScopeAvailable).toBe(false);
-    expect(response.body.presenceTaskHealth.available).toBe(true);
+    expect(response.body.countsAvailable).toBe(false);
+    expect(response.body.degraded).toBe(true);
+    expect(response.body.byTool).toEqual({});
+    expect(response.body).not.toHaveProperty("presenceTaskHealth");
     expect(fixture.query).not.toHaveBeenCalled();
   });
-  it("preserves existing admitted staff aggregates without inferring a higher primary role", async () => {
+  it("admits the active admin session but returns 503 without primary admin queue scope", async () => {
     const response = await request(await app())
       .get("/api/admin/tool-notifications")
       .set("x-role", "business_owner")
       .set("x-active-role", "super_admin");
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(503);
     expect(response.body.queueScopeAvailable).toBe(false);
     expect(response.body.byTool).toEqual({});
     expect(response.body.totalUnread).toBeNull();
-    expect(response.body.presenceTaskHealth.available).toBe(true);
+    expect(response.body.countsAvailable).toBe(false);
+    expect(response.body.degraded).toBe(true);
+    expect(response.body).not.toHaveProperty("presenceTaskHealth");
     expect(fixture.query).not.toHaveBeenCalled();
   });
   it("keeps available queues actionable on a partial storage/schema failure without reporting a total", async () => {
@@ -128,26 +128,18 @@ describe("actual admin tool notifications route", () => {
     expect(response.body.totalUnread).toBeNull();
     expect(fixture.query).toHaveBeenCalledTimes(5); // No fallback counting all historical rows.
   });
-  it("returns 503 and unknown counts when queue sources and independent Presence both fail", async () => {
+  it("returns 503 and unknown counts when all queue sources fail", async () => {
     fixture.query.mockRejectedValue(new Error("storage unavailable"));
-    fixture.presence.mockRejectedValue(new Error("presence unavailable"));
     const response = await request(await app())
       .get("/api/admin/tool-notifications")
       .set("x-role", "ops_admin");
     expect(response.status).toBe(503);
     expect(response.body.countsAvailable).toBe(false);
     expect(response.body.totalUnread).toBeNull();
+    expect(response.body.partiallyAvailable).toBe(false);
+    expect(response.body.degraded).toBe(true);
+    expect(response.body).not.toHaveProperty("presenceTaskHealth");
     expect(Object.values(response.body.byTool)).toEqual([null, null, null, null]);
-  });
-  it("preserves independent Presence when all queue sources fail", async () => {
-    fixture.query.mockRejectedValue(new Error("storage unavailable"));
-    const response = await request(await app())
-      .get("/api/admin/tool-notifications")
-      .set("x-role", "ops_admin");
-    expect(response.status).toBe(200);
-    expect(response.body.countsAvailable).toBe(false);
-    expect(response.body.totalUnread).toBeNull();
-    expect(response.body.presenceTaskHealth.available).toBe(true);
   });
   it("retains the source observation time while cached and refreshes it after expiry", async () => {
     const server = await app();
@@ -169,15 +161,16 @@ describe("actual admin tool notifications route", () => {
     expect(refreshed.body.updatedAt).not.toBe(first.body.updatedAt);
     expect(fixture.query).toHaveBeenCalledTimes(10);
   });
-  it("keeps valid queue counts when Presence health alone is unavailable", async () => {
-    fixture.presence.mockRejectedValue(new Error("presence unavailable"));
+  it("returns complete valid queue counts without degradation or a Presence payload", async () => {
     const response = await request(await app())
       .get("/api/admin/tool-notifications")
       .set("x-role", "ops_admin");
     expect(response.status).toBe(200);
     expect(response.body.countsAvailable).toBe(true);
-    expect(response.body.degraded).toBe(true);
-    expect(response.body.presenceTaskHealth.available).toBe(false);
+    expect(response.body.degraded).toBe(false);
+    expect(response.body.partiallyAvailable).toBe(false);
+    expect(response.body.totalUnread).toBe(28);
+    expect(response.body).not.toHaveProperty("presenceTaskHealth");
   });
 });
 
