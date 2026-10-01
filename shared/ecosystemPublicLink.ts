@@ -60,14 +60,15 @@ export function upsertProfileEcosystemPublicLinks(blocks: unknown[], refs: Ecosy
   if (others.length + (refs.length ? 1 : 0) > 200) throw new Error("This profile already has the maximum number of content blocks.");
   return refs.length ? [...others, { type: "custom", data: { kind: blockKind, references: refs.map(p => ({ ...p })) } }] : others;
 }
-export function isMealScoutPublicRestaurantDestination(raw: unknown, sourceId: string): raw is string {
+export function isMealScoutPublicProfileDestination(raw: unknown, sourceId: string): raw is string {
   if (typeof raw !== "string") return false;
   try {
     const u = new URL(raw);
+    const tail = u.pathname.split("/").at(-1) ?? "";
     return u.origin === "https://www.mealscout.us" && u.href === raw && !u.username && !u.password && !u.search && !u.hash
-      && /^\/restaurant\/[a-z0-9][a-z0-9-]{0,119}$/.test(u.pathname)
-      && u.pathname.lastIndexOf("--") >= "/restaurant/".length
-      && u.pathname.slice(u.pathname.lastIndexOf("--") + 2) === sourceId;
+      && /^\/(restaurant|truck|bar|caterer|private-chef)\/[a-z0-9][a-z0-9-]{0,119}$/.test(u.pathname)
+      && tail.lastIndexOf("--") >= 1
+      && tail.slice(tail.lastIndexOf("--") + 2) === sourceId;
   } catch { return false; }
 }
 
@@ -82,7 +83,7 @@ export function projectApprovedEcosystemPublicLink(raw: unknown, pointer: Ecosys
     || typeof raw.sourceRevision !== "string" || !/^[a-f0-9]{40}$/.test(raw.sourceRevision)
     || typeof raw.publicationRevision !== "string" || !/^g[a-f0-9]{32}_p[1-9][0-9]{0,18}_a[1-9][0-9]{0,18}$/.test(raw.publicationRevision)
     || typeof raw.approvedAt !== "string" || typeof raw.expiresAt !== "string"
-    || !isMealScoutPublicRestaurantDestination(raw.canonicalUrl, pointer.sourceId)) return null;
+    || !isMealScoutPublicProfileDestination(raw.canonicalUrl, pointer.sourceId)) return null;
   const approved = Date.parse(raw.approvedAt), expires = Date.parse(raw.expiresAt);
   if (!Number.isFinite(approved) || !Number.isFinite(expires) || approved > now || expires <= now || expires <= approved
     || expires > now + 1000) return null;

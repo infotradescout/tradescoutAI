@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import express from "express";
-import { buildMealScoutSharingLink, ecosystemPublicLinkKey, parseMealScoutSharingLink, projectApprovedEcosystemPublicLink,
+import { buildMealScoutSharingLink, ecosystemPublicLinkKey, isMealScoutPublicProfileDestination, parseMealScoutSharingLink, projectApprovedEcosystemPublicLink,
   readEcosystemPublicLinkPointer, readProfileEcosystemPublicLinks, upsertProfileEcosystemPublicLinks } from "../shared/ecosystemPublicLink";
 import { createEcosystemPublicLinkReceiver, readMealScoutPublicLinkEnvelope } from "../server/services/ecosystemPublicLinkReceiver";
 import { registerEcosystemPublicLinkReceiverRoutes } from "../server/routes/ecosystem-public-links";
@@ -42,6 +42,36 @@ test("only exact source-approved public whitelist is usable; private fields/cano
     assert.equal(projectApprovedEcosystemPublicLink({ ...e, ...change }, pointer, Date.now()), null);
   }
   assert.doesNotMatch(JSON.stringify(result), /owner|phone|cookie|payment|email|grant|session/i);
+});
+
+test("five native food destinations preserve exact canonical binding and reject route/URL tricks", () => {
+  const now = Date.now();
+  for (const prefix of ["restaurant", "truck", "bar", "caterer", "private-chef"]) {
+    const canonicalUrl = `https://www.mealscout.us/${prefix}/cedar-kitchen--meal-one`;
+    const e = { ...envelope(), canonicalUrl };
+    assert.equal(isMealScoutPublicProfileDestination(canonicalUrl, pointer.sourceId), true, prefix);
+    assert.equal(projectApprovedEcosystemPublicLink(e, pointer, now)?.canonicalUrl, canonicalUrl);
+    for (const bad of [canonicalUrl + "?q=1", canonicalUrl + "#hash", canonicalUrl + "/",
+      canonicalUrl.replace("www.mealscout.us", "www.mealscout.us.evil.invalid"),
+      canonicalUrl.replace("www.mealscout.us", "mealscout.us"), canonicalUrl.replace("https://", "http://"),
+      canonicalUrl.replace("https://", "https://private@"), canonicalUrl.replace("cedar-kitchen", "%63edar-kitchen"),
+      canonicalUrl.replace(`/${prefix}/`, `/${prefix}//`), canonicalUrl.replace(`/${prefix}/`, `/restaurant/../${prefix}/`),
+      canonicalUrl.replace("meal-one", "other--meal-one--other"), canonicalUrl.replace("cedar-kitchen", "x".repeat(121)),
+      canonicalUrl.replace("cedar-kitchen", "_cedar"), canonicalUrl.replace(`/${prefix}/`, "/private_chef/")]) {
+      assert.equal(isMealScoutPublicProfileDestination(bad, pointer.sourceId), false, bad);
+      assert.equal(projectApprovedEcosystemPublicLink({ ...e, canonicalUrl: bad }, pointer, now), null);
+    }
+    for (const change of [{ exportApproval: "unapproved" }, { publication: "draft" }, { ownerId: "PRIVATE_CANARY" },
+      { tenantId: "c".repeat(32) }, { sourceId: "other" }, { expiresAt: new Date(now).toISOString() }]) {
+      assert.equal(projectApprovedEcosystemPublicLink({ ...e, ...change }, pointer, now), null, prefix);
+    }
+  }
+  for (const prefix of ["host", "host_venue", "supplier", "location", "event", "trucks", "food-truck", "private_chef"]) {
+    assert.equal(isMealScoutPublicProfileDestination(`https://www.mealscout.us/${prefix}/cedar--meal-one`, pointer.sourceId), false, prefix);
+  }
+  const ambiguous = "https://www.mealscout.us/truck/cedar--other--meal-one";
+  assert.equal(isMealScoutPublicProfileDestination(ambiguous, "meal-one"), true);
+  assert.equal(isMealScoutPublicProfileDestination(ambiguous, "other--meal-one"), false);
 });
 
 test("feature-off and missing/private/unregistered native profile perform zero publisher calls", async () => {

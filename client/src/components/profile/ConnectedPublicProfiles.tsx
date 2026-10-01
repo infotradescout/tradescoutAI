@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ecosystemPublicLinkKey, isMealScoutPublicRestaurantDestination,
+import { ecosystemPublicLinkKey, isMealScoutPublicProfileDestination,
   type EcosystemPublicLinkPointer } from "@shared/ecosystemPublicLink";
 
 export default function ConnectedPublicProfiles({ profileSlug, references }: {
@@ -28,7 +28,7 @@ export default function ConnectedPublicProfiles({ profileSlug, references }: {
       const ref = result?.reference;
       const now = Math.max(Date.now(), startedWall + performance.now() - startedMono);
       if (controller.signal.aborted || result.state !== "available" || ref?.reference !== ecosystemPublicLinkKey(pointer)
-        || ref?.access !== "public_link_only" || !isMealScoutPublicRestaurantDestination(ref?.canonicalUrl, pointer.sourceId)
+        || ref?.access !== "public_link_only" || !isMealScoutPublicProfileDestination(ref?.canonicalUrl, pointer.sourceId)
         || !Number.isFinite(Date.parse(ref.expiresAt)) || Date.parse(ref.expiresAt) <= now
         || Date.parse(ref.expiresAt) > now + 1000 || Date.now() < startedWall) throw new Error("unavailable");
       // One fresh navigation, no browser persistence, polling, account or grant.
