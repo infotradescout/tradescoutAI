@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState, type CSSProperties } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
@@ -24,8 +24,10 @@ const DETAIL_PHOTO_ARROW_CLASS =
 export function StoneDetailDialog({ stone, saved, onOpenChange, onToggleSaved, onAsk }: StoneDetailDialogProps) {
   const imageCount = stone?.images.length ?? 0;
   const { activeIndex: imageIndex, railRef, onScroll, scrollToIndex } = useMomentumRail({ itemCount: imageCount, resetKey: stone?.id ?? "closed" });
+  const [imageAspects, setImageAspects] = useState<Record<string, number>>({});
   if (!stone) return null;
   const selectedImage = stone.images[imageIndex] || stone.images[0];
+  const photoStageStyle = { "--jw-photo-aspect": imageAspects[selectedImage] || 4 / 3 } as CSSProperties;
   const finishes = confirmedFinishes(stone);
   const availability = availabilityDetailLabel(stone);
   const dimensions = formatDimensionsForDisplay(stone.slabDimensions);
@@ -43,15 +45,19 @@ export function StoneDetailDialog({ stone, saved, onOpenChange, onToggleSaved, o
         if (event.key === "ArrowLeft") { event.preventDefault(); move(-1); }
         if (event.key === "ArrowRight") { event.preventDefault(); move(1); }
       }}>
-      <div className="flex min-h-full max-w-full flex-col overflow-x-hidden">
-        <div className="relative flex-none overflow-hidden bg-[var(--jw-dark)] shadow-[0_24px_70px_rgba(30,24,18,0.16)]" data-testid="jw-stone-detail-media">
-          <div ref={railRef} data-testid="jw-stone-detail-photo-rail"
-            className="scrollbar-hide flex h-[52dvh] min-h-[18rem] w-full max-w-full cursor-grab overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] active:cursor-grabbing sm:h-[62dvh] sm:min-h-[24rem] [&::-webkit-scrollbar]:hidden"
+      <div className="flex min-h-full w-full max-w-full flex-none flex-col overflow-x-hidden">
+        <div className="relative flex-none overflow-hidden bg-[var(--jw-surface)] shadow-[0_24px_70px_rgba(30,24,18,0.16)]" data-testid="jw-stone-detail-media">
+          <div ref={railRef} data-testid="jw-stone-detail-photo-rail" style={photoStageStyle}
+            className="scrollbar-hide flex aspect-[var(--jw-photo-aspect)] max-h-[75dvh] w-full max-w-full cursor-grab overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] active:cursor-grabbing sm:aspect-auto sm:h-[62dvh] sm:min-h-[24rem] sm:max-h-none [&::-webkit-scrollbar]:hidden"
             role={imageCount > 1 ? "region" : undefined} aria-roledescription={imageCount > 1 ? "carousel" : undefined}
             aria-label={imageCount > 1 ? `${stone.publicLabel} photo gallery` : undefined} onScroll={onScroll}>
             {stone.images.map((image, index) => <figure key={`${image}-${index}`} data-momentum-item="true" data-testid={`jw-stone-detail-photo-${index}`}
-              className="flex h-full min-w-full flex-none items-center justify-center overflow-hidden" aria-label={`Photo ${index + 1} of ${imageCount}`}>
-              <img src={image} alt={stone.displayName ? `${stone.displayName} stone, view ${index + 1}` : `JW Stone selection, view ${index + 1}`} draggable={false} className="h-full w-full select-none object-contain" />
+              className="flex h-full w-full min-w-full flex-none items-center justify-center overflow-hidden" aria-label={`Photo ${index + 1} of ${imageCount}`}>
+              <img src={image} alt={stone.displayName ? `${stone.displayName} stone, view ${index + 1}` : `JW Stone selection, view ${index + 1}`} draggable={false}
+                onLoad={event => {
+                  const { naturalWidth, naturalHeight } = event.currentTarget;
+                  if (naturalWidth > 0 && naturalHeight > 0) setImageAspects(current => current[image] === naturalWidth / naturalHeight ? current : { ...current, [image]: naturalWidth / naturalHeight });
+                }} className="h-full w-full select-none object-contain" />
             </figure>)}
           </div>
           {imageCount > 1 ? <>
@@ -60,7 +66,7 @@ export function StoneDetailDialog({ stone, saved, onOpenChange, onToggleSaved, o
             <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-lg backdrop-blur-md">{imageIndex + 1} / {imageCount}</div>
           </> : null}
         </div>
-        {imageCount > 1 ? <ul className="scrollbar-hide flex max-w-full gap-2.5 overflow-x-auto overscroll-x-contain border-b border-[var(--jw-border)] px-5 py-4 [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] sm:px-9 [&::-webkit-scrollbar]:hidden" data-testid="jw-stone-detail-photo-thumbs">
+        {imageCount > 1 ? <ul className="scrollbar-hide flex max-w-full shrink-0 gap-2.5 overflow-x-auto overscroll-x-contain border-b border-[var(--jw-border)] px-5 py-4 [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] sm:px-9 [&::-webkit-scrollbar]:hidden" data-testid="jw-stone-detail-photo-thumbs">
           {stone.images.map((image, index) => <li key={`${image}-${index}`} className="shrink-0">
             <button type="button" data-testid={`jw-stone-detail-photo-thumb-${index}`} onClick={() => scrollToIndex(index)} aria-label={`Show image ${index + 1} of ${imageCount}`} aria-current={index === imageIndex ? "true" : undefined}
               className={`h-14 w-16 overflow-hidden border bg-[var(--jw-surface)] transition-[border-color,opacity,transform] sm:h-16 sm:w-20 ${index === imageIndex ? "border-[var(--jw-accent)] opacity-100 ring-1 ring-[var(--jw-accent)] ring-offset-2 ring-offset-[var(--jw-bg)]" : "border-[var(--jw-border)] opacity-60 hover:opacity-100"}`}>

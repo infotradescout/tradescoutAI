@@ -41,7 +41,7 @@ describe("StoneDetailDialog", async () => {
     expect(offer && save && (offer.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0).toBe(true);
     click(offer); expect(onAsk).not.toHaveBeenCalled();
   });
-  it("keeps a stable detail stage while photos move through a native momentum rail", async () => {
+  it("fits the current photo while preserving native momentum and photo actions", async () => {
     const stone = JW_STONE_CATALOG.find(entry => entry.images.length > 1);
     expect(stone).toBeTruthy(); if (!stone) throw new Error("Expected a multi-image stone");
     await act(async () => root.render(<StoneDetailDialog stone={stone} saved={false} onOpenChange={vi.fn()} onToggleSaved={vi.fn()} onAsk={vi.fn()} />));
@@ -50,15 +50,22 @@ describe("StoneDetailDialog", async () => {
     const rail = dialog?.querySelector<HTMLElement>('[data-testid="jw-stone-detail-photo-rail"]');
     const leadImages = rail?.querySelectorAll("img") || [];
     expect(dialog?.className).toMatch(/w-full/); expect(dialog?.className).toMatch(/overflow-x-hidden/); expect(media?.className).toMatch(/overflow-hidden/);
-    expect(rail?.className).toMatch(/h-\[52dvh\]/); expect(rail?.className).toMatch(/overflow-x-auto/); expect(rail?.className).toMatch(/overscroll-x-contain/); expect(rail?.className).toContain("[-webkit-overflow-scrolling:touch]"); expect(rail?.className).not.toMatch(/snap-/);
+    expect(rail?.className).toMatch(/overflow-x-auto/); expect(rail?.className).toMatch(/overscroll-x-contain/); expect(rail?.className).toContain("[-webkit-overflow-scrolling:touch]"); expect(rail?.className).not.toMatch(/snap-/);
     expect(leadImages).toHaveLength(stone.images.length); expect(leadImages[0]?.className).toMatch(/h-full/); expect(leadImages[0]?.className).toMatch(/w-full/); expect(leadImages[0]?.className).toMatch(/object-contain/); expect(leadImages[0]?.className).not.toMatch(/h-auto|object-cover/);
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-prev"]')).not.toBeNull(); expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-next"]')).not.toBeNull(); expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-thumbs"]')).not.toBeNull();
     expect(dialog?.querySelectorAll('[data-testid^="jw-stone-detail-photo-thumb-"]').length).toBe(stone.images.length);
     expect(leadImages[0]?.getAttribute("src")).toBe(stone.images[0]);
+    const landscape = leadImages[0]!, portrait = leadImages[1]!;
+    Object.defineProperties(landscape, { naturalWidth: { value: 1600 }, naturalHeight: { value: 900 } });
+    Object.defineProperties(portrait, { naturalWidth: { value: 900 }, naturalHeight: { value: 1200 } });
+    act(() => { landscape.dispatchEvent(new Event("load")); portrait.dispatchEvent(new Event("load")); });
+    expect(rail?.style.getPropertyValue("--jw-photo-aspect")).toBe(String(16 / 9));
     click(dialog?.querySelector('[data-testid="jw-stone-detail-photo-next"]') ?? null);
+    expect(rail?.style.getPropertyValue("--jw-photo-aspect")).toBe(String(3 / 4));
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-thumb-1"]')?.getAttribute("aria-current")).toBe("true"); expect(media?.textContent).toContain(`2 / ${stone.images.length}`);
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-room"]')?.getAttribute("href")).toBe(stoneRoomDestination(stone, stone.images[1]!, stoneRoomBasePath()));
     click(dialog?.querySelector('[data-testid="jw-stone-detail-photo-thumb-0"]') ?? null);
+    expect(rail?.style.getPropertyValue("--jw-photo-aspect")).toBe(String(16 / 9));
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-thumb-0"]')?.getAttribute("aria-current")).toBe("true");
   });
   it("omits gallery chrome for single-image stones", async () => {
