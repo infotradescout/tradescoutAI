@@ -320,7 +320,9 @@ export function renderPublicExchangeListing(template: string, item: PublicExchan
     title,
     description,
     image: images[0] ? absolute(images[0]) : undefined,
-    body: body.replace('<p class="price">', `${supplierAction}<p class="price">`).replace("</main>", `${localServices}</main>`),
+    body: (supplier ? body.replace(`<p>Listed by ${e(seller)}</p>`, "<p>Inquiries coordinated through TradeScout</p>") : body)
+      .replace('<p class="price">', `${supplierAction}<p class="price">`)
+      .replace("</main>", `${localServices}</main>`),
     schemas: [schema, breadcrumb],
   });
 }

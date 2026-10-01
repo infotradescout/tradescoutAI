@@ -24,10 +24,10 @@ export function stonePublicSupplier(listing: StoneListing) {
 }
 
 export function stoneFabricatorPricingMessage(
-  listing: StoneListing & { title: string; price: unknown }
+  listing: { id?: string; title: string; price: unknown; specifications?: Record<string, unknown> }
 ): string | null {
   const supplier = stonePublicSupplier(listing);
   return supplier
-    ? `Please confirm fabricator pricing for Honey Onyx from ${supplier.name}. ${stoneInquiryMessage(listing as { id?: string; title: string; price: unknown; specifications?: Record<string, unknown> }, "availability")}`
+    ? `Please confirm fabricator pricing for Honey Onyx from ${supplier.name}. ${stoneInquiryMessage(listing, "availability")}`
     : null;
 }

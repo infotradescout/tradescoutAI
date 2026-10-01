@@ -14,6 +14,8 @@ import {
 } from "../publicExchangeDiscoveryHtml";
 import type { PublicExchangeRecord } from "../services/exchangePublicDiscovery";
 import { stonePublicReferenceSizes } from "../../shared/exchangeStonePublicReference";
+import { stonePublicSupplier } from "../../shared/exchangeStoneSupplier";
+import { projectPublicStone } from "../services/exchangeStoneDiscovery";
 import {
   stoneInquiryMessage,
   stoneReferencePriceCalculation,
@@ -55,6 +57,40 @@ function listing(category = "tools", seller = "ordinary-seller"): PublicExchange
   };
 }
 describe("Shared public Exchange discovery", () => {
+  it("attributes Honey to ISSA Build in public data and HTML without reassigning the protected seller account", () => {
+    const item = {
+      ...listing("building-materials"),
+      id: "tradescout-stone-honey-onyx",
+      title: "Honey Onyx",
+      price: "47.25",
+      brand: "TradeScout",
+      sellerId: "synthetic-marketplace-operator",
+      businessName: "TradeScout",
+      categoryId: "synthetic-category",
+      publicDetailPath: "/exchange/building-materials/tradescout-stone-honey-onyx",
+      specifications: { commerceChannel: "tradescout_stone_retail", sellerBrand: "TradeScout", priceUnit: "sqft", privateFabricatorPrice: "PRIVATE-NOT-PUBLIC" },
+    };
+    const publicItem = projectPublicStone(item);
+    expect(publicItem.brand).toBe("ISSA Build");
+    expect(publicItem.supplier).toEqual(stonePublicSupplier(item));
+    expect(publicItem.sellerId).toBe(item.sellerId);
+    expect(publicItem.seller).toMatchObject({ id: item.sellerId, name: "TradeScout" });
+    expect(publicItem.specifications.sellerBrand).toBe("TradeScout");
+    expect(JSON.stringify(publicItem)).not.toContain("PRIVATE-NOT-PUBLIC");
+    const document = new JSDOM(renderPublicExchangeListing(template, item)).window.document;
+    const supplier = document.querySelector("[data-exchange-stone-supplier]")!;
+    expect(supplier.textContent).toContain("From ISSA Build");
+    expect(supplier.querySelector("a")?.getAttribute("href")).toBe("/issa-build/onyx/inventory/honey-onyx");
+    expect(supplier.querySelector('a[href*="pricing=fabricator"]')?.textContent).toBe("Request fabricator pricing");
+    expect(document.body.textContent).toContain("Inquiries coordinated through TradeScout");
+    expect(document.body.textContent).not.toContain("Listed by TradeScout");
+    expect(document.body.textContent).not.toContain("JW Stone");
+    expect(publicExchangeItemSchema(item).brand).toEqual({ "@type": "Brand", name: "ISSA Build" });
+    expect(publicExchangeItemSchema(item)).not.toHaveProperty("offers");
+    expect(document.querySelector(".price")?.textContent).toContain("$2,580.70");
+    expect(stonePublicSupplier({ ...item, id: "ordinary-honey-onyx" })).toBeNull();
+    expect(stonePublicSupplier({ ...item, specifications: { commerceChannel: "profile_catalog" } })).toBeNull();
+  });
   it("shows the approved Honey estimate's dimensional basis consistently without pricing rounded area or inventing stock", () => {
     const item = {
       ...listing("building-materials"),
@@ -262,7 +298,8 @@ describe("Shared public Exchange discovery", () => {
     expect(html).toContain("Estimated full slab material price: $2,835.00");
     expect(html).toContain("$47.25 / sq ft");
     expect(html).toContain("120x72");
-    expect(html).toContain("Listed by TradeScout");
+    expect(new JSDOM(html).window.document.querySelector("[data-exchange-stone-supplier]")?.textContent).toContain("From ISSA Build");
+    expect(html).toContain("Inquiries coordinated through TradeScout");
     expect(html).toContain("Delivery, fabrication and installation are separate.");
     expect(html).toContain("Confirm the selected slab and available quantity before purchase");
     expect(html).toContain(
