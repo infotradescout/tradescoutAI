@@ -1,6 +1,7 @@
 import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME, SELL_CATEGORY_FIELDS } from "../shared/exchangeListingRules";
 import { stoneSlabMaterialPrice } from "../shared/exchangeStoneBuyerFlow";
 import { stonePublicReferenceSizes } from "../shared/exchangeStonePublicReference";
+import { EXCHANGE_STONE_LOCAL_SERVICES } from "../shared/exchangeStoneLocalServices";
 import { isStoneRetailListing } from "../shared/exchangeStoneInquiryDraft";
 import { sanitizePublicListingText } from "../shared/publicListingSafety";
 import type { PublicExchangeRecord, PublicExchangeIndexEntry } from "./services/exchangePublicDiscovery";
@@ -107,19 +108,23 @@ function nav(category?: string): string {
 }
 export function renderPublicExchangeListing(template: string, item: PublicExchangeRecord): string {
   const price = publicExchangePrice(item);
-  const title = `${clean(item.title, 140)} | TradeScout Exchange`;
+  const listingTitle = clean(item.title, 140);
+  const title = `${isStoneRetailListing(item) ? listingTitle.replace(/\s*\|\s*TradeScout(?: Stone)?\s*$/i, "") : listingTitle} | TradeScout Exchange`;
   const description = clean(`${price.primary}. ${item.description || ""}`, 180);
   const images = (Array.isArray(item.images) ? item.images : []).slice(0, 16);
   const facts = itemFacts(item);
   const seller = clean(item.businessName || item.sellerName || item.seller?.name, 160);
   const schema = publicExchangeItemSchema(item);
+  const localServices = isStoneRetailListing(item)
+    ? `<section aria-label="${e(EXCHANGE_STONE_LOCAL_SERVICES.heading)}" data-exchange-stone-local-services><h2>${e(EXCHANGE_STONE_LOCAL_SERVICES.heading)}</h2><p>${e(EXCHANGE_STONE_LOCAL_SERVICES.description)}</p><p>${e(EXCHANGE_STONE_LOCAL_SERVICES.terms)}</p><p><a href="${e(EXCHANGE_STONE_LOCAL_SERVICES.href)}">${e(EXCHANGE_STONE_LOCAL_SERVICES.linkLabel)}</a></p></section>`
+    : "";
   const breadcrumb = { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
     { "@type": "ListItem", position: 1, name: "Exchange", item: absolute("/exchange") },
     { "@type": "ListItem", position: 2, name: categoryName(item.category), item: absolute(`/exchange/${item.category}`) },
     { "@type": "ListItem", position: 3, name: item.title, item: absolute(item.publicDetailPath) },
   ] };
   const body = `<main class="exchange-public" data-public-exchange-listing="${e(item.id)}">${nav(item.category)}<h1>${e(clean(item.title, 200))}</h1><p class="price">${e(price.primary)}</p>${price.secondary ? `<p>${e(price.secondary)}</p>` : ""}<p>${e(price.note)}</p>${images.length ? `<figure><img src="${e(images[0])}" alt="${e(clean(item.title, 200))}" width="960" height="640" decoding="async"></figure>` : ""}<p class="description">${e(clean(item.description))}</p>${seller ? `<p>Listed by ${e(seller)}</p>` : ""}${facts.length ? `<h2>Listing details</h2><dl>${facts.map(([label, value]) => `<dt>${e(label)}</dt><dd>${e(value)}</dd>`).join("")}</dl>` : ""}${item.isLocalPickupOnly ? "<p>Local pickup only. Public discovery does not mean nationwide shipping.</p>" : item.willShip ? "<p>Seller offers shipping. Confirm destination, availability and cost before purchase.</p>" : "<p>Confirm pickup or delivery arrangements before purchase.</p>"}${isStoneRetailListing(item) ? "<p>TradeScout stone purchasing is offered in eligible U.S. markets, excluding Pensacola, Florida. Confirm pickup or delivery options and charges with TradeScout before purchase. Photos are material references; confirm the selected slab's appearance, dimensions and finish. Viewing this public listing does not establish purchase eligibility.</p>" : ""}<p><a href="${e(item.publicDetailPath)}?inquiry=availability">Review listing and start a protected request</a></p><p>Contact and purchasing remain in TradeScout’s existing protected flow. Viewing this page does not share contact information or place an order.</p>${item.publicProfilePath ? `<p><a href="${e(item.publicProfilePath)}">Open the seller’s public catalog</a></p>` : ""}</main>`;
-  return documentHtml(template, { path: item.publicDetailPath, title, description, image: images[0] ? absolute(images[0]) : undefined, body, schemas: [schema, breadcrumb] });
+  return documentHtml(template, { path: item.publicDetailPath, title, description, image: images[0] ? absolute(images[0]) : undefined, body: body.replace("</main>", `${localServices}</main>`), schemas: [schema, breadcrumb] });
 }
 export function renderPublicExchangeDirectory(template: string, data: { items: PublicExchangeRecord[]; page: number; pageSize: number; total: number; category?: string }): string {
   const path = data.category ? `/exchange/${data.category}` : "/exchange";
