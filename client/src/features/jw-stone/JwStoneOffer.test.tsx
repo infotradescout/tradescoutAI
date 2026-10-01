@@ -34,7 +34,7 @@ describe("JW Stone real offer form",()=>{
     });
   });
   afterEach(async()=>{await act(async()=>root.unmount());client.clear();host.remove();vi.unstubAllGlobals();});
-  const renderOffer=(context:JwStoneOfferContext)=>act(()=>root.render(<QueryClientProvider client={client}><ExpressDirectConnectPanel open onClose={()=>{}} profileSlug="jw-stone" businessName="JW Stone" hasViewerSession allowCall={false} requestMode="materials" initialView="request" jwStoneOffer={context}/></QueryClientProvider>));
+  const renderOffer=(context:JwStoneOfferContext,open=true)=>act(()=>root.render(<QueryClientProvider client={client}><ExpressDirectConnectPanel open={open} onClose={()=>{}} profileSlug="jw-stone" businessName="JW Stone" hasViewerSession allowCall={false} requestMode="materials" initialView="request" jwStoneOffer={context}/></QueryClientProvider>));
   const renderCatalog=()=>act(()=>root.render(<QueryClientProvider client={client}><JwStoneMemberPricingProvider viewerId="offer-member"><JwStoneMemberPriceDisplay stoneName="Honey Onyx" inventoryPublicId={id} slabDimensions="120 x 60"/></JwStoneMemberPricingProvider></QueryClientProvider>));
   it("sends one pending stone offer on a double submit and never requests payment",async()=>{
     renderOffer({scope:"stone",viewerId:"offer-member",stoneName:"Honey Onyx",inventoryPublicId:id});
@@ -51,6 +51,52 @@ describe("JW Stone real offer form",()=>{
   });
   it("does not submit without checked pricing or a valid amount",async()=>{
     reviewUnavailable=true;renderOffer({scope:"stone",viewerId:"offer-member",stoneName:"Honey Onyx",inventoryPublicId:id});await eventually(()=>expect(host.textContent).toContain("Prices and stock could not be checked"));fill("1.001");submitTwice();expect(submitButton().disabled).toBe(true);expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it.each([
+    ["unreadable accepted receipt", () => Promise.resolve({ok:true,status:201,json:async()=>{throw Error("Truncated receipt");}})],
+    ["incomplete accepted receipt", () => Promise.resolve({ok:true,status:201,json:async()=>({requestId:"possibly-saved"})})],
+    ["malformed request ID", () => Promise.resolve({ok:true,status:201,json:async()=>({requestId:{},offerStatus:"pending_review",paymentAllowed:false,inventoryReserved:false})})],
+    ["blank request ID", () => Promise.resolve({ok:true,status:201,json:async()=>({requestId:"   ",offerStatus:"pending_review",paymentAllowed:false,inventoryReserved:false})})],
+    ["unsafe accepted receipt", () => Promise.resolve({ok:true,status:201,json:async()=>({requestId:"possibly-saved",offerStatus:"pending_review",paymentAllowed:true,inventoryReserved:false})})],
+    ["lost transport response", () => Promise.reject(Error("Connection lost"))],
+    ["server error after submission", () => Promise.resolve({ok:false,status:500,json:async()=>({message:"Server error"})})],
+    ["request timeout", () => Promise.resolve({ok:false,status:408,json:async()=>({message:"Timeout"})})],
+  ] as const)("pauses the same draft after %s instead of sending another offer",async(_label,response)=>{
+    fetchMock.mockImplementation(response);
+    renderOffer({scope:"stone",viewerId:"offer-member",stoneName:"Honey Onyx",inventoryPublicId:id});
+    await eventually(()=>expect(document.querySelector('[data-testid="jw-offer-listed-total"]')?.textContent).toBe("$150.00"));
+    fill("120.25");await eventually(()=>expect(submitButton().disabled).toBe(false));submitTwice();
+    await eventually(()=>expect(document.querySelector('[data-testid="jw-offer-receipt-uncertain"]')).not.toBeNull());
+    expect(submitButton().disabled).toBe(true);submitTwice();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(host.textContent).not.toContain("Offer submitted — pending review");
+    const recovery=document.querySelector('[data-testid="jw-offer-receipt-uncertain"]')!;
+    expect(recovery.textContent).toContain("This draft is paused");
+    expect(recovery.textContent).toContain("no payment has been requested");
+    expect(recovery.querySelector("a")?.textContent).toBe("Check My Requests");
+    expect(recovery.querySelector("a")?.getAttribute("href")).toContain("/direct-connect/engagements");
+  });
+  it("keeps an uncertain mounted draft paused when an equivalent context is recreated and reopened",async()=>{
+    const context:JwStoneOfferContext={scope:"stone",viewerId:"offer-member",stoneName:"Honey Onyx",inventoryPublicId:id};
+    fetchMock.mockResolvedValue({ok:true,status:201,json:async()=>({})});
+    renderOffer(context);await eventually(()=>expect(document.querySelector('[data-testid="jw-offer-listed-total"]')?.textContent).toBe("$150.00"));
+    fill("120.25");await eventually(()=>expect(submitButton().disabled).toBe(false));submitTwice();
+    await eventually(()=>expect(document.querySelector('[data-testid="jw-offer-receipt-uncertain"]')).not.toBeNull());
+    renderOffer({...context},false);renderOffer({...context});
+    await eventually(()=>expect(submitButton().disabled).toBe(true));submitTwice();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('[data-testid="jw-offer-receipt-uncertain"]')).not.toBeNull();
+  });
+  it("lets a known rejected offer be corrected and retried",async()=>{
+    fetchMock.mockResolvedValueOnce({ok:false,status:409,json:async()=>({message:"The listed total changed. Review the latest total."})});
+    renderOffer({scope:"stone",viewerId:"offer-member",stoneName:"Honey Onyx",inventoryPublicId:id});
+    await eventually(()=>expect(document.querySelector('[data-testid="jw-offer-listed-total"]')?.textContent).toBe("$150.00"));
+    fill("120.25");await eventually(()=>expect(submitButton().disabled).toBe(false));submitTwice();
+    await eventually(()=>expect(host.textContent).toContain("The listed total changed."));
+    expect(document.querySelector('[data-testid="jw-offer-receipt-uncertain"]')).toBeNull();
+    await eventually(()=>expect(submitButton().disabled).toBe(false));submitTwice();
+    await eventually(()=>expect(host.textContent).toContain("Offer submitted — pending review"));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
   it("opens stone offers separately without adding or changing cart slabs",async()=>{
     renderCatalog();await eventually(()=>expect(document.querySelector('[data-testid="jw-stone-make-offer-card"]')).not.toBeNull());click(document.querySelector('[data-testid="jw-stone-make-offer-card"]'));await eventually(()=>expect(document.querySelector('input[aria-label="Your total offer (USD)"]')).not.toBeNull());expect(localStorage.getItem("tradescout:jw-stone:member-cart:v2:offer-member")).toBe("[]");expect(document.querySelector('[data-testid="jw-stone-member-cart"]')).toBeNull();
