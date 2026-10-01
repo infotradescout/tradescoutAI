@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { stoneListingPath, stonePriceLabel, stoneSlabMaterialPriceRange } from "../../shared/exchangeStoneBuyerFlow";
+import { stonePublicSupplier } from "../../shared/exchangeStoneSupplier";
 
 export const STONE_CHANNEL = "tradescout_stone_retail";
 export const STONE_AUDIENCE = "US_EXCEPT_PENSACOLA_FL_CITY";
@@ -102,10 +103,12 @@ export function validStonePublication(row: any, sellerId: string, secret: string
 /** Explicit allowlist. Supplier economics, origin URLs and approval records never reach the buyer. */
 export function projectPublicStone(row: any): StonePublicItem {
   const s = row.specifications;
+  const supplier = stonePublicSupplier(row);
   return { id: row.id, sellerId: row.sellerId, categoryId: row.categoryId, category: "building-materials",
     title: row.title, description: row.description, price: cents(row.price)! / 100, currency: "USD",
     priceUnit: s.priceUnit, priceLabel: stonePriceLabel(row.price, s.priceUnit), priceType: "fixed", pricingMode: "fixed",
-    images: [...row.images], primaryImageIndex: 0, brand: "TradeScout", sellerName: "TradeScout", businessName: "TradeScout",
+    images: [...row.images], primaryImageIndex: 0, brand: supplier?.name || "TradeScout", sellerName: "TradeScout", businessName: "TradeScout",
+    ...(supplier ? { supplier } : {}),
     seller: { id: row.sellerId, name: "TradeScout", businessName: "TradeScout", verified: row.isSellerVerified === true },
     sellerVerified: row.isSellerVerified === true, condition: scalar(row.condition), status: "active", sourceType: "marketplace_listing",
     location: "United States", city: "", state: "", county: "", shippingCost: null, willShip: false,

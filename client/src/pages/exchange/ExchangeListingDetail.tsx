@@ -7,6 +7,7 @@ import {
   stoneReferencePriceCalculation,
 } from "@shared/exchangeStoneBuyerFlow";
 import { stonePublicReferenceSizes } from "@shared/exchangeStonePublicReference";
+import { stonePublicSupplier } from "@shared/exchangeStoneSupplier";
 import { isStoneRetailListing, STONE_DRAFT_MAX_MESSAGE } from "@shared/exchangeStoneInquiryDraft";
 import { useExchangeStoneInquiry } from "@/hooks/useExchangeStoneInquiry";
 import { useParams, useSearch, useLocation } from "wouter";
@@ -457,6 +458,7 @@ export default function ExchangeListingDetail() {
   const isProfileOffer = listing.sourceType === "profile_offer";
   const isProfileCatalog = listing.sourceType === "profile_catalog";
   const isProfileLinked = isProfileOffer || isProfileCatalog;
+  const stoneSupplier = stoneInquiry.isRetail ? stonePublicSupplier(listing) : null;
   const stoneSlabPrice = stoneInquiry.isRetail
     ? stoneSlabMaterialPrice(
         listing.price,
@@ -756,13 +758,22 @@ export default function ExchangeListingDetail() {
                   )}
                 </div>
               )}
-              {stoneInquiry.isRetail && <JwStoneFabricatorPortalLink />}
+              {stoneInquiry.isRetail && !stoneSupplier && <JwStoneFabricatorPortalLink />}
+              {stoneSupplier && (
+                <div className="space-y-2 rounded-lg border border-white/10 p-3" data-testid="exchange-stone-supplier">
+                  <p className="text-sm text-white/80">From <a href={stoneSupplier.productPath} className="font-semibold text-ts-orange underline underline-offset-4">{stoneSupplier.name}</a></p>
+                  <Button variant="outline" className="min-h-12 w-full" onClick={() => stoneInquiry.prepare("availability", { fabricatorPricing: true })}>
+                    Request fabricator pricing
+                  </Button>
+                  <p className="text-xs text-white/60">Review a pricing request through TradeScout. Pricing and eligibility are confirmed before purchase.</p>
+                </div>
+              )}
               {stoneInquiry.isRetail && (
                 <div
                   className="space-y-1 text-sm text-white/70"
                   data-testid="exchange-stone-purchase-details"
                 >
-                  <p>Listed by {listing.seller.name}</p>
+                  <p>{stoneSupplier ? "Inquiries coordinated through TradeScout" : `Listed by ${listing.seller.name}`}</p>
                   <p>Availability: confirm the selected slab and available quantity.</p>
                   <p>
                     Pickup or delivery options and charges require confirmation before purchase.
