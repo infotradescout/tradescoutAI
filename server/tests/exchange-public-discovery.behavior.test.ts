@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { JSDOM } from "jsdom";
 import express from "express";
 import request from "supertest";
 import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME } from "../../shared/exchangeListingRules";
@@ -21,6 +22,44 @@ function listing(category = "tools", seller = "ordinary-seller"): PublicExchange
     publicDetailPath: `/exchange/${category}/${seller}-${category}`, sourceType: "marketplace_listing", status: "active", isLocalPickupOnly: true };
 }
 describe("Shared public Exchange discovery", () => {
+  it.each(["TradeScout", "TradeScout Stone"])("keeps one marketplace brand in a retail material search title ending with %s", brand => {
+    const item = { ...listing("building-materials"), id: "tradescout-stone-honey-onyx", title: `Honey Onyx Slabs | ${brand}`, price: 47.25,
+      specifications: { commerceChannel: "tradescout_stone_retail", priceUnit: "sqft" } };
+    const document = new JSDOM(renderPublicExchangeListing(template, item)).window.document;
+    expect(document.title).toBe("Honey Onyx Slabs | TradeScout Exchange");
+    expect(document.querySelector('meta[property="og:title"]')?.getAttribute("content")).toBe(document.title);
+    expect(document.querySelector('meta[name="twitter:title"]')?.getAttribute("content")).toBe(document.title);
+    expect(document.querySelector('meta[name="description"]')?.getAttribute("content")).toContain("$2,580.70");
+  });
+  it("makes local ISSA fabrication/install services crawlable from a retail stone while preserving material metadata and purchase policy", () => {
+    const item = { ...listing("building-materials"), id: "tradescout-stone-honey-onyx", title: "Honey Onyx", price: 47.25,
+      publicDetailPath: "/exchange/building-materials/tradescout-stone-honey-onyx",
+      specifications: { commerceChannel: "tradescout_stone_retail", priceUnit: "sqft" } };
+    const document = new JSDOM(renderPublicExchangeListing(template, item)).window.document;
+    const services = document.querySelector("[data-exchange-stone-local-services]")!;
+    expect(services.textContent).toContain("Fabrication and installation near Pensacola");
+    expect(services.textContent).toContain("Pensacola-area kitchen and bathroom projects");
+    expect(services.textContent).toContain("Service availability and pricing are confirmed separately");
+    expect(services.querySelector("a")?.getAttribute("href")).toBe("/u/issa-build/services/countertops-fabrication");
+    expect(services.querySelector("a")?.textContent).toBe("Explore ISSA Build services");
+    expect(document.querySelector("h1")?.textContent).toBe("Honey Onyx");
+    expect(document.querySelector(".price")?.textContent).toContain("$2,580.70");
+    expect(document.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe("https://www.thetradescout.com/exchange/building-materials/tradescout-stone-honey-onyx");
+    expect(document.querySelector('meta[name="robots"]')?.getAttribute("content")).toContain("index, follow");
+    expect(document.body.textContent).toContain("excluding Pensacola, Florida");
+    const schema = JSON.parse(document.querySelector('script[type="application/ld+json"]')!.textContent!);
+    expect(schema["@type"]).toBe("Product");
+    expect(schema).not.toHaveProperty("offers");
+    expect(schema).not.toHaveProperty("aggregateRating");
+    expect(document.querySelector('a[href*="inquiry=availability"]')).not.toBeNull();
+  });
+  it("keeps unrelated sellers and JW/profile-catalog material pages outside the local retail service callout", () => {
+    for (const item of [listing(), listing("building-materials"), { ...listing("building-materials"), sourceType: "profile_catalog" }]) {
+      const html = renderPublicExchangeListing(template, item);
+      expect(html).not.toContain("data-exchange-stone-local-services");
+      expect(html).not.toContain("Explore ISSA Build services");
+    }
+  });
   it("uses the approved Honey reference consistently in public totals, facts and inquiry draft", () => {
     const item = { ...listing("building-materials"), id: "tradescout-stone-honey-onyx", title: "Honey Onyx", price: 47.25,
       specifications: { commerceChannel: "tradescout_stone_retail", priceUnit: "sqft" } };

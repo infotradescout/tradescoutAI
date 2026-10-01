@@ -68,6 +68,22 @@ describe("Public Exchange detail and protected action separation", () => {
   afterEach(() => { act(() => root.unmount()); host.remove(); vi.restoreAllMocks(); });
   async function renderDetail() { await act(async () => root.render(<ExchangeListingDetail />)); }
 
+  it("keeps a public local-service discovery link separate from the TradeScout material price and protected inquiry", async () => {
+    await renderDetail();
+    const services = host.querySelector('[data-testid="exchange-stone-local-services"]')!;
+    expect(services.textContent).toContain("Fabrication and installation near Pensacola");
+    expect(services.textContent).toContain("Pensacola-area kitchen and bathroom projects");
+    expect(services.textContent).toContain("Stone material pricing excludes fabrication and installation");
+    const link = services.querySelector("a")!;
+    expect(link.getAttribute("href")).toBe("/u/issa-build/services/countertops-fabrication");
+    expect(link.textContent).toBe("Explore ISSA Build services");
+    expect(host.querySelector('[data-testid="exchange-stone-slab-price"]')?.textContent).toMatch(/^\$1,700\.00[-–]\$1,706\.67$/);
+    expect(host.querySelector('[data-testid="exchange-stone-purchase-details"]')?.textContent).toContain("Listed by TradeScout");
+    expect(state.mutate).not.toHaveBeenCalled();
+    expect(state.api).not.toHaveBeenCalled();
+    expect(state.navigate).not.toHaveBeenCalled();
+  });
+
   it("shows the full-slab range and public description; opening review sends nothing", async () => {
     await renderDetail();
     expect(host.querySelector("h1")?.textContent).toBe("AJ Quartz");
