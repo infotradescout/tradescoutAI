@@ -102,7 +102,7 @@ describe("MaterialStonePager", () => {
     });
     expect(status?.textContent).toBe("Gray & silver · 2 of 3");
     expect(container.textContent).toContain("View stone");
-    expect(container.textContent).toMatch(/Ask/i);
+    expect(container.textContent).toContain("Make an Offer");
   });
 
   it("updates position from free scrolling without introducing a hard snap", () => {

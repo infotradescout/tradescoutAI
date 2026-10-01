@@ -71,7 +71,7 @@ export function StoneCard({ stone, saved, onToggleSaved, onOpen, onAsk, photoBro
     : `Stone selection photograph from JW Stone${imageCount > 1 ? `, view ${index + 1} of ${imageCount}` : ""}`;
   return <article ref={cardRef} data-stone-card="true" data-stone-id={stone.id} data-photo-count={imageCount}
     className="group mx-auto w-full min-w-0 max-w-[1120px]" data-anonymous={stone.anonymous ? "true" : "false"}>
-    <div data-testid="jw-stone-card-media" className="relative isolate aspect-[4/3] max-w-full overflow-hidden bg-[var(--jw-dark)] shadow-[0_24px_70px_rgba(30,24,18,0.13)] ring-1 ring-black/10 sm:aspect-[16/10]">
+    <div data-testid="jw-stone-card-media" className="relative isolate aspect-[4/3] max-w-full overflow-hidden bg-[var(--jw-surface)] shadow-[0_24px_70px_rgba(30,24,18,0.13)] ring-1 ring-black/10 sm:aspect-[16/10]">
       <div ref={railRef} data-testid="jw-stone-card-photo-rail"
         className="scrollbar-hide flex h-full w-full max-w-full cursor-grab overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] active:cursor-grabbing [&::-webkit-scrollbar]:hidden"
         role={hasPhotoRail ? "region" : undefined} aria-roledescription={hasPhotoRail ? "carousel" : undefined}
