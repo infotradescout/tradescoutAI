@@ -11,6 +11,7 @@ import { isValidDirectConnectRequestPhone } from "@shared/directConnectPhone";
 import { sanitizeJwStoneDirectConnectSelections } from "@shared/jwStoneDirectConnect";
 import { isRegisteredDirectProfileSlug } from "@shared/publicProfileExposureRegistry";
 import { JW_STONE_OFFER_TERMS, type JwStoneOfferContext, type JwStoneOfferInput } from "@shared/jwStoneOffer";
+import { combineJwStoneCartLines } from "@shared/jwStoneCart";
 import { JwStoneOfferFields } from "@/features/jw-stone/JwStoneOfferFields";
 
 export type ExpressDirectConnectRequestType =
@@ -157,7 +158,17 @@ export default function ExpressDirectConnectPanel({
   const canRevealRegisteredBusinessPhone = allowCall && isRegisteredDirectProfileSlug(profileSlug);
   const config = REQUEST_MODE_CONFIG[requestMode];
   const offerContext = profileSlug === "jw-stone" && requestMode === "materials" && hasViewerSession ? jwStoneOffer : undefined;
+  // Object recreation does not make a new offer draft or release an uncertain receipt.
+  const offerDraftKey = offerContext ? JSON.stringify(offerContext.scope === "stone"
+    ? [offerContext.viewerId, offerContext.scope, offerContext.stoneName, offerContext.inventoryPublicId || null]
+    : [offerContext.viewerId, offerContext.scope,
+        combineJwStoneCartLines(offerContext.selection.lines)
+          .sort((a, b) => a.inventoryPublicId.localeCompare(b.inventoryPublicId)),
+        offerContext.selection.fulfillment?.method === "delivery"
+          ? ["delivery", offerContext.selection.fulfillment.postalCode.trim()] : ["pickup"],
+        offerContext.displayedSubtotalCents]) : null;
   const [offerInput, setOfferInput] = useState<JwStoneOfferInput | null>(null);
+  const [offerReceiptUncertain, setOfferReceiptUncertain] = useState(false);
   const requestInFlightRef = useRef(false);
   const safeStoneSelections = useMemo(
     () =>
@@ -224,12 +235,13 @@ export default function ExpressDirectConnectPanel({
   );
   const [form, setForm] = useState(initialForm);
   const draftRef = useRef({
-    offerContext,
+    offerDraftKey,
     profileSlug,
     requestMode,
     messageEdited: false,
     requestTypeEdited: false,
     submitted: false,
+    receiptUncertain: false,
   });
   const updatesOptInLabel =
     requestMode === "materials" && profileSlug === "jw-stone"
@@ -288,19 +300,21 @@ export default function ExpressDirectConnectPanel({
   useEffect(() => {
     const draft = draftRef.current;
     const startNewDraft =
-      draft.offerContext !== offerContext ||
+      draft.offerDraftKey !== offerDraftKey ||
       draft.profileSlug !== profileSlug ||
       draft.requestMode !== requestMode ||
       (open && draft.submitted);
     if (startNewDraft) {
       setOfferInput(null);
+      setOfferReceiptUncertain(false);
       draftRef.current = {
-        offerContext,
+        offerDraftKey,
         profileSlug,
         requestMode,
         messageEdited: false,
         requestTypeEdited: false,
         submitted: false,
+        receiptUncertain: false,
       };
     }
     setForm((current) =>
@@ -329,7 +343,7 @@ export default function ExpressDirectConnectPanel({
     initialRequestType,
     initialForm,
     initialFormMessage,
-    offerContext,
+    offerDraftKey,
     initialView,
     multiStoneSelections.length,
     open,
@@ -420,8 +434,10 @@ export default function ExpressDirectConnectPanel({
   const submitRequest = async (event: FormEvent) => {
     event.preventDefault();
     const draft = draftRef.current;
-    if (requestInFlightRef.current || draft.submitted) return;
+    if (requestInFlightRef.current || draft.submitted || draft.receiptUncertain) return;
     requestInFlightRef.current = true;
+    let offerDeliveryAttempted = false;
+    let offerDeliveryRejected = false;
     setBusy(true);
     setError("");
     try {
@@ -463,6 +479,7 @@ export default function ExpressDirectConnectPanel({
           ? `Customer type: ${roleLabel}.\n\n${message}`
           : message;
       const discoveryAttribution = getStoredDiscoveryLandingAttribution(profileSlug);
+      offerDeliveryAttempted = Boolean(offerContext);
       const response = await fetch(
         `/api/tradepartner-profiles/${encodeURIComponent(profileSlug)}/express-request`,
         {
@@ -485,6 +502,9 @@ export default function ExpressDirectConnectPanel({
           }),
         }
       );
+      // A known validation/auth/rate-limit rejection may be corrected and retried.
+      // A timeout, server error, lost response, or invalid successful receipt may follow persistence.
+      offerDeliveryRejected = !response.ok && [400, 401, 403, 404, 409, 413, 422, 429].includes(response.status);
       const json = await response.json().catch(() => ({}));
       if (draftRef.current !== draft) return;
       if (!response.ok) {
@@ -496,7 +516,7 @@ export default function ExpressDirectConnectPanel({
             : "We couldn’t send that yet."
         );
       }
-      if (offerContext && (!json?.requestId || json.offerStatus !== "pending_review" || json.paymentAllowed !== false || json.inventoryReserved !== false)) {
+      if (offerContext && (typeof json?.requestId !== "string" || !json.requestId.trim() || json.offerStatus !== "pending_review" || json.paymentAllowed !== false || json.inventoryReserved !== false)) {
         throw new Error("The offer receipt could not be confirmed. Check My Requests before retrying.");
       }
       setRequestId(String(json?.requestId || ""));
@@ -511,7 +531,16 @@ export default function ExpressDirectConnectPanel({
       draft.submitted = true;
       setView("success");
     } catch (cause: any) {
-      if (draftRef.current === draft) setError(cause?.message || "We couldn’t send that yet.");
+      if (draftRef.current === draft) {
+        if (offerDeliveryAttempted && !offerDeliveryRejected) {
+          // Protect this mounted draft from sequential retries; this is not server-wide idempotency.
+          draft.receiptUncertain = true;
+          setOfferReceiptUncertain(true);
+          setError("");
+        } else {
+          setError(cause?.message || "We couldn’t send that yet.");
+        }
+      }
     } finally {
       requestInFlightRef.current = false;
       if (draftRef.current === draft) setBusy(false);
@@ -803,7 +832,7 @@ export default function ExpressDirectConnectPanel({
               </p>
               <button
                 type="submit"
-                disabled={busy || Boolean(offerContext && !offerInput)}
+                disabled={busy || offerReceiptUncertain || Boolean(offerContext && !offerInput)}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-ts-orange px-7 py-3.5 font-bold text-white transition-colors hover:bg-ts-orange-dark disabled:opacity-60"
               >
                 {busy ? (
@@ -897,6 +926,13 @@ export default function ExpressDirectConnectPanel({
             </div>
           ) : null}
 
+          {offerReceiptUncertain ? (
+            <div role="alert" data-testid="jw-offer-receipt-uncertain" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              <p>We couldn’t confirm whether JW Stone received your offer. This draft is paused to avoid sending it twice. Check My Requests before starting another offer.</p>
+              <p className="mt-2">This is not an order or reservation, and no payment has been requested.</p>
+              <a href={requestHref} className="mt-2 inline-flex min-h-11 items-center font-semibold underline">Check My Requests</a>
+            </div>
+          ) : null}
           {error ? (
             <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
