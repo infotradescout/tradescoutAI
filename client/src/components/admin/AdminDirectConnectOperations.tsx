@@ -6,30 +6,34 @@ import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/queryClient";
 import { createClientOperationId } from "@/lib/clientOperationId";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
-
-type History = {
-  hasMore: boolean;
-  messages: Array<{
-    id: string;
-    content: string;
-    senderType: string;
-    senderId: string;
-    createdAt: string;
-  }>;
-  replyAssignmentId: string | null;
-  replyUnavailableReason: string | null;
-};
+import { useAdminObservationClock } from "@/admin/adminQueueState";
+import {
+  currentRequestEvidence,
+  evidenceTimestamp,
+  parseRequestDetail,
+  parseRequestHistory,
+  parseRequestProviders,
+  parseInvitationReceipt,
+  parseReplyReceipt,
+  readParsed,
+  requestDetailKey,
+  requestEvidenceState,
+  requestHistoryKey,
+  requestProviderKey,
+  type RequestDetail,
+  type RequestHistory,
+  type Provider,
+} from "./adminDirectConnectEvidence";
 
 export function AdminDirectConnectOperations({
   requestId,
-  countyFips,
-  status,
 }: {
   requestId: string;
-  countyFips: string | null;
-  status: string | null;
+  countyFips?: string | null;
+  status?: string | null;
 }) {
   const queryClient = useQueryClient();
+  const now = useAdminObservationClock();
   const [search, setSearch] = useState("");
   const [providerId, setProviderId] = useState("");
   const [assignmentReason, setAssignmentReason] = useState("");
@@ -48,40 +52,117 @@ export function AdminDirectConnectOperations({
     }
     return pendingOperations.current[kind].id;
   };
-  const history = useQuery<History>({
-    queryKey: ["/api/admin/direct-connect/requests", requestId, "messages", messagePage],
-    queryFn: () =>
-      apiRequest(
-        "GET",
-        `/api/admin/direct-connect/requests/${requestId}/messages?page=${messagePage}`
+
+  const contextKey = requestDetailKey(requestId);
+  const context = useQuery<RequestDetail>({
+    queryKey: contextKey,
+    queryFn: async () =>
+      parseRequestDetail(
+        await apiRequest(
+          "GET",
+          `/api/admin/direct-connect/requests/${encodeURIComponent(requestId)}`
+        ),
+        requestId
       ),
+    retry: false,
   });
-  const canAssign = status === "open" || status === "routed";
-  const providers = useQuery<
-    Array<{ id: string; companyName?: string; name?: string; businessName?: string }>
-  >({
-    queryKey: ["/api/business-providers/search", "operator", countyFips, search],
-    enabled: canAssign && Boolean(countyFips) && search.trim().length >= 2,
-    queryFn: () =>
-      apiRequest(
-        "GET",
-        `/api/business-providers/search?${new URLSearchParams({
-          county: countyFips || "",
-          query: search.trim(),
-          limit: "10",
-        })}`
+  const contextData = readParsed(context.data, (value) => parseRequestDetail(value, requestId));
+  const contextState = requestEvidenceState(context, contextData !== null, now);
+  const contextCurrent = contextState === "Current" && !context.isFetching;
+  const countyFips = contextData?.request.countyFips || null;
+  const canAssign =
+    contextData?.request.source === "direct_connect" &&
+    ["open", "routed"].includes(contextData.request.status || "") &&
+    !contextData.assignments.some((assignment) => assignment.status === "accepted");
+  const historyKey = requestHistoryKey(requestId, messagePage);
+  const history = useQuery<RequestHistory>({
+    queryKey: historyKey,
+    queryFn: async () =>
+      parseRequestHistory(
+        await apiRequest(
+          "GET",
+          `/api/admin/direct-connect/requests/${encodeURIComponent(requestId)}/messages?page=${messagePage}`
+        ),
+        requestId,
+        messagePage
       ),
+    retry: false,
   });
+  const historyData = readParsed(history.data, (value) =>
+    parseRequestHistory(value, requestId, messagePage)
+  );
+  const historyState = requestEvidenceState(history, historyData !== null, now);
+  const historyCurrent = contextCurrent && historyState === "Current" && !history.isFetching;
+  const providerSearchEnabled =
+    contextCurrent && canAssign && Boolean(countyFips) && search.trim().length >= 2;
+  const providers = useQuery<Provider[]>({
+    queryKey: requestProviderKey(requestId, countyFips, search),
+    enabled: providerSearchEnabled,
+    queryFn: async () =>
+      parseRequestProviders(
+        await apiRequest(
+          "GET",
+          `/api/business-providers/search?${new URLSearchParams({ county: countyFips || "", query: search.trim(), limit: "10" })}`
+        )
+      ),
+    retry: false,
+  });
+  const providerData = readParsed(providers.data, parseRequestProviders);
+  const providerState =
+    search.trim().length < 2
+      ? "Search required"
+      : requestEvidenceState(providers, providerData !== null, now);
+  const providersCurrent =
+    providerSearchEnabled && providerState === "Current" && !providers.isFetching;
+  const selectedProviderCurrent =
+    providersCurrent && Boolean(providerData?.some((provider) => provider.id === providerId));
+  const accepted =
+    contextData?.assignments.filter((assignment) => assignment.status === "accepted") || [];
+  const replyBindingCurrent =
+    historyCurrent &&
+    contextData?.request.source === "direct_connect" &&
+    contextData.request.status === "in_progress" &&
+    accepted.length === 1 &&
+    Boolean(historyData?.replyAssignmentId) &&
+    accepted[0].id === historyData?.replyAssignmentId;
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ["/api/admin/direct-connect/requests"] });
   };
   const assign = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
+      const freshContext = currentRequestEvidence(queryClient.getQueryState(contextKey), (value) =>
+        parseRequestDetail(value, requestId)
+      );
+      const freshProviders = freshContext
+        ? currentRequestEvidence(
+            queryClient.getQueryState(
+              requestProviderKey(requestId, freshContext.request.countyFips || null, search)
+            ),
+            parseRequestProviders
+          )
+        : null;
+      if (
+        !freshContext ||
+        freshContext.request.source !== "direct_connect" ||
+        !["open", "routed"].includes(freshContext.request.status || "") ||
+        freshContext.assignments.some((assignment) => assignment.status === "accepted") ||
+        !freshContext.request.countyFips ||
+        search.trim().length < 2 ||
+        !freshProviders?.some((provider) => provider.id === providerId) ||
+        assignmentReason.trim().length < 10
+      )
+        throw new Error("Refresh the request and provider results before inviting a provider.");
       const payload = { providerId, reason: assignmentReason.trim() };
-      return apiRequest("POST", `/api/admin/direct-connect/requests/${requestId}/assignments`, {
-        ...payload,
-        operationId: operationId("assign", payload),
-      });
+      return parseInvitationReceipt(
+        await apiRequest(
+          "POST",
+          `/api/admin/direct-connect/requests/${encodeURIComponent(requestId)}/assignments`,
+          {
+            ...payload,
+            operationId: operationId("assign", payload),
+          }
+        )
+      );
     },
     onSuccess: async (result) => {
       delete pendingOperations.current.assign;
@@ -98,16 +179,42 @@ export function AdminDirectConnectOperations({
     },
   });
   const sendReply = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
+      const freshContext = currentRequestEvidence(queryClient.getQueryState(contextKey), (value) =>
+        parseRequestDetail(value, requestId)
+      );
+      const freshHistory = currentRequestEvidence(queryClient.getQueryState(historyKey), (value) =>
+        parseRequestHistory(value, requestId, messagePage)
+      );
+      const accepted =
+        freshContext?.assignments.filter((assignment) => assignment.status === "accepted") || [];
+      if (
+        !freshContext ||
+        freshContext.request.source !== "direct_connect" ||
+        freshContext.request.status !== "in_progress" ||
+        !freshHistory?.replyAssignmentId ||
+        accepted.length !== 1 ||
+        accepted[0].id !== freshHistory.replyAssignmentId ||
+        !reply.trim() ||
+        replyReason.trim().length < 10
+      )
+        throw new Error("Refresh the request and its messages before sending a staff reply.");
       const payload = {
-        assignmentId: history.data?.replyAssignmentId,
+        assignmentId: freshHistory.replyAssignmentId,
         content: reply.trim(),
         reason: replyReason.trim(),
       };
-      return apiRequest("POST", `/api/admin/direct-connect/requests/${requestId}/replies`, {
-        ...payload,
-        operationId: operationId("reply", payload),
-      });
+      return parseReplyReceipt(
+        await apiRequest(
+          "POST",
+          `/api/admin/direct-connect/requests/${encodeURIComponent(requestId)}/replies`,
+          {
+            ...payload,
+            operationId: operationId("reply", payload),
+          }
+        ),
+        payload.assignmentId
+      );
     },
     onSuccess: async () => {
       delete pendingOperations.current.reply;
@@ -120,109 +227,171 @@ export function AdminDirectConnectOperations({
   });
 
   return (
-    <div className="space-y-5 border-t border-[color:var(--border-subtle)] pt-4">
-      {notice && (
+    <div
+      className="space-y-5 border-t border-[color:var(--border-subtle)] pt-4"
+      data-testid="admin-request-staff-operations"
+    >
+      {notice ? (
         <p role="status" className="text-sm text-white/80">
           {notice}
         </p>
-      )}
-      {canAssign && (
+      ) : null}
+      {!contextCurrent ? (
+        <p role="status" className="text-sm text-amber-100">
+          Request context is {contextState.toLowerCase()}. Staff drafts are saved here; refresh the
+          request before acting.
+        </p>
+      ) : null}
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => context.refetch()}
+        disabled={context.isFetching}
+      >
+        Refresh request context
+      </Button>
+      {canAssign || search || assignmentReason ? (
         <section aria-label="Invite a specific provider" className="space-y-2">
           <h3 className="font-medium">Invite a specific provider</h3>
           <p className="text-xs text-white/60">
             The provider must meet this request's county, trade, verification, and trust
             requirements. They decide whether to accept.
           </p>
-          {countyFips ? (
-            <>
-              <Input
-                aria-label="Search providers in request county"
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setProviderId("");
-                }}
-                placeholder="Search providers in the request county"
-              />
-              {providers.isError && (
-                <p role="alert">Could not load providers. Try the search again.</p>
-              )}
-              {providers.isFetching && (
-                <p className="text-xs text-white/60">Searching providers...</p>
-              )}
-              {providers.data && (
-                <div className="space-y-1">
-                  {providers.data.length === 0 && (
-                    <p className="text-xs text-white/60">No providers found in this county.</p>
-                  )}
-                  {providers.data.map((provider) => (
-                    <label
-                      key={provider.id}
-                      className="flex gap-2 rounded border border-[color:var(--border-subtle)] p-2"
-                    >
-                      <input
-                        type="radio"
-                        name={`provider-${requestId}`}
-                        checked={providerId === provider.id}
-                        onChange={() => setProviderId(provider.id)}
-                      />
-                      <span>
-                        {provider.companyName ||
-                          provider.businessName ||
-                          provider.name ||
-                          "Provider"}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-              <Textarea
-                aria-label="Provider invitation audit reason"
-                placeholder="Why are you inviting this provider? (internal audit)"
-                value={assignmentReason}
-                onChange={(event) => setAssignmentReason(event.target.value)}
-                maxLength={1000}
-              />
-              <Button
-                disabled={!providerId || assignmentReason.trim().length < 10 || assign.isPending}
-                onClick={() => {
-                  setNotice("");
-                  assign.mutate();
-                }}
-              >
-                {assign.isPending ? "Inviting..." : "Invite selected provider"}
-              </Button>
-              {assign.isError && (
-                <p role="alert" className="text-red-300">
-                  {formatUserFacingErrorMessage(
-                    assign.error,
-                    "Unable to invite this provider. Please try again."
-                  )}
-                </p>
-              )}
-            </>
-          ) : (
+          {!countyFips ? (
             <p className="text-xs text-white/60">
-              This request needs a county before a provider can be invited.
+              This request needs a current county before a provider can be invited.
             </p>
-          )}
+          ) : null}
+          <Input
+            aria-label="Search providers in request county"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setProviderId("");
+            }}
+            placeholder="Search providers in the request county"
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <p role="status" className="text-xs text-white/60">
+              Provider source: {providerState.toLowerCase()}. Last successful read{" "}
+              {evidenceTimestamp(providers.dataUpdatedAt)}.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => providers.refetch()}
+              disabled={!providerSearchEnabled || providers.isFetching}
+            >
+              Refresh provider results
+            </Button>
+          </div>
+          {!providersCurrent && search.trim().length >= 2 ? (
+            <p role="status" className="text-sm text-amber-100">
+              Current provider results unavailable. Refresh the request and provider results before
+              selecting or inviting.
+            </p>
+          ) : null}
+          {providersCurrent && providerData ? (
+            <div className="space-y-1">
+              {providerData.length === 0 ? (
+                <p className="text-xs text-white/60">No providers found in this county.</p>
+              ) : null}
+              {providerData.map((provider) => (
+                <label
+                  key={provider.id}
+                  className="flex gap-2 rounded border border-[color:var(--border-subtle)] p-2"
+                >
+                  <input
+                    type="radio"
+                    name={`provider-${requestId}`}
+                    aria-label={
+                      provider.companyName || provider.businessName || provider.name || "Provider"
+                    }
+                    checked={providerId === provider.id}
+                    onChange={() => setProviderId(provider.id)}
+                  />
+                  <span>
+                    {provider.companyName || provider.businessName || provider.name || "Provider"}
+                  </span>
+                </label>
+              ))}
+            </div>
+          ) : providerData?.length ? (
+            <details className="border border-white/10 p-2">
+              <summary>Previously loaded providers · historical results</summary>
+              {providerData.map((provider) => (
+                <p key={provider.id} className="mt-2 text-sm text-white/60">
+                  {provider.companyName || provider.businessName || provider.name || "Provider"}
+                </p>
+              ))}
+            </details>
+          ) : null}
+          {providerId && providersCurrent && !selectedProviderCurrent ? (
+            <p role="status">
+              The selected provider is no longer in these results. Select a provider again.
+            </p>
+          ) : null}
+          <Textarea
+            aria-label="Provider invitation audit reason"
+            placeholder="Why are you inviting this provider? (internal audit)"
+            value={assignmentReason}
+            onChange={(event) => setAssignmentReason(event.target.value)}
+            maxLength={1000}
+          />
+          <Button
+            disabled={
+              !selectedProviderCurrent || assignmentReason.trim().length < 10 || assign.isPending
+            }
+            onClick={() => {
+              setNotice("");
+              assign.mutate();
+            }}
+          >
+            {assign.isPending ? "Inviting..." : "Invite selected provider"}
+          </Button>
+          {assign.isError ? (
+            <p role="alert" className="text-red-300">
+              {formatUserFacingErrorMessage(
+                assign.error,
+                "Unable to invite this provider. Please try again."
+              )}
+            </p>
+          ) : null}
         </section>
-      )}
-
+      ) : null}
       <section aria-label="Request conversation" className="space-y-2">
         <h3 className="font-medium">Request conversation</h3>
         <p className="text-xs text-white/60">
           Only messages explicitly linked to this request appear here. Earlier unlinked
           conversations are excluded.
         </p>
-        {history.isLoading && <p>Loading request messages...</p>}
-        {history.isError && <p role="alert">Could not load request messages.</p>}
-        {history.data?.messages.length === 0 && (
+        <div className="flex flex-wrap items-center gap-3">
+          <p role="status" className="text-xs text-white/60">
+            Messages source: {historyState.toLowerCase()}. Last successful read{" "}
+            {evidenceTimestamp(history.dataUpdatedAt)}.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => history.refetch()}
+            disabled={history.isFetching}
+          >
+            Refresh request messages
+          </Button>
+        </div>
+        {!historyCurrent ? (
+          <p role="status" className="text-sm text-amber-100">
+            Current request messages unavailable. Refresh the request and messages before replying.
+            Saved messages, when shown, are historical evidence.
+          </p>
+        ) : null}
+        {historyCurrent && historyData?.messages.length === 0 ? (
           <p className="text-white/60">No linked messages yet.</p>
-        )}
-        {history.data?.messages.map((message) => (
+        ) : null}
+        {historyData?.messages.map((message) => (
           <div key={message.id} className="rounded border border-[color:var(--border-subtle)] p-3">
             <div className="text-xs text-white/60">
+              {!historyCurrent ? "Previously loaded · " : ""}
               {message.senderType === "staff"
                 ? "TradeScout staff"
                 : message.senderType === "homeowner"
@@ -230,70 +399,74 @@ export function AdminDirectConnectOperations({
                   : "Provider"}{" "}
               · {new Date(message.createdAt).toLocaleString()}
             </div>
-            <p className="whitespace-pre-wrap mt-1">{message.content}</p>
+            <p className="mt-1 whitespace-pre-wrap">{message.content}</p>
           </div>
         ))}
-        {history.data && (messagePage > 0 || history.data.hasMore) && (
+        {historyData && (messagePage > 0 || historyData.hasMore) ? (
           <div className="flex gap-2">
             <Button
               variant="outline"
-              disabled={messagePage === 0 || history.isFetching}
+              disabled={messagePage === 0 || !historyCurrent}
               onClick={() => setMessagePage((page) => page - 1)}
             >
               Newer messages
             </Button>
             <Button
               variant="outline"
-              disabled={!history.data.hasMore || history.isFetching}
+              disabled={!historyData.hasMore || !historyCurrent}
               onClick={() => setMessagePage((page) => page + 1)}
             >
               Older messages
             </Button>
           </div>
-        )}
-        {history.data?.replyAssignmentId ? (
-          <>
-            <p className="text-xs text-white/60">
-              Replies are attributed to TradeScout staff and visible to the requester and accepted
-              provider. Keep contact details in the customer-controlled contact release.
-            </p>
-            <Textarea
-              aria-label="Staff reply"
-              placeholder="Reply as TradeScout staff"
-              value={reply}
-              onChange={(event) => setReply(event.target.value)}
-              maxLength={5000}
-            />
-            <Textarea
-              aria-label="Staff reply audit reason"
-              placeholder="Why is staff assisting? (internal audit)"
-              value={replyReason}
-              onChange={(event) => setReplyReason(event.target.value)}
-              maxLength={1000}
-            />
-            <Button
-              disabled={!reply.trim() || replyReason.trim().length < 10 || sendReply.isPending}
-              onClick={() => {
-                setNotice("");
-                sendReply.mutate();
-              }}
-            >
-              {sendReply.isPending ? "Saving reply..." : "Send as TradeScout staff"}
-            </Button>
-            {sendReply.isError && (
-              <p role="alert" className="text-red-300">
-                {formatUserFacingErrorMessage(
-                  sendReply.error,
-                  "Unable to save the staff reply. Please try again."
-                )}
-              </p>
+        ) : null}
+        <p className="text-xs text-white/60">
+          Replies are attributed to TradeScout staff and visible to the requester and accepted
+          provider. Keep contact details in the customer-controlled contact release.
+        </p>
+        {!replyBindingCurrent ? (
+          <p role="status" className="text-xs text-amber-100">
+            {historyCurrent && historyData?.replyUnavailableReason
+              ? historyData.replyUnavailableReason
+              : "A current request and one matching accepted provider conversation are required to send a staff reply."}
+          </p>
+        ) : null}
+        <Textarea
+          aria-label="Staff reply"
+          placeholder="Reply as TradeScout staff"
+          value={reply}
+          onChange={(event) => setReply(event.target.value)}
+          maxLength={5000}
+        />
+        <Textarea
+          aria-label="Staff reply audit reason"
+          placeholder="Why is staff assisting? (internal audit)"
+          value={replyReason}
+          onChange={(event) => setReplyReason(event.target.value)}
+          maxLength={1000}
+        />
+        <Button
+          disabled={
+            !replyBindingCurrent ||
+            !reply.trim() ||
+            replyReason.trim().length < 10 ||
+            sendReply.isPending
+          }
+          onClick={() => {
+            setNotice("");
+            sendReply.mutate();
+          }}
+        >
+          {sendReply.isPending ? "Saving reply..." : "Send as TradeScout staff"}
+        </Button>
+        {sendReply.isError ? (
+          <p role="alert" className="text-red-300">
+            {formatUserFacingErrorMessage(
+              sendReply.error,
+              "Unable to save the staff reply. Please try again."
             )}
-          </>
-        ) : (
-          history.data?.replyUnavailableReason && (
-            <p className="text-xs text-white/60">{history.data.replyUnavailableReason}</p>
-          )
-        )}
+          </p>
+        ) : null}
       </section>
     </div>
   );

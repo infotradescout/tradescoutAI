@@ -1693,7 +1693,6 @@ export default function ProfileSiteView() {
     .filter(
       (block: any) => !["about", "hero", "services", "cta", "gallery"].includes(String(block?.type))
     )
-    .slice(0, 4)
     .map((block: any) => {
       const data = block?.data && typeof block.data === "object" ? block.data : {};
       const title =
@@ -1715,7 +1714,8 @@ export default function ProfileSiteView() {
         body: sanitizePublicDiscoveryText(body, 2000),
       };
     })
-    .filter((item) => item.body.length > 0);
+    .filter((item) => item.body.length > 0)
+    .slice(0, 4);
   const defaultHeroData = (() => {
     const block = contentBlocks.find((entry: any) => entry?.type === "hero") as any;
     return block?.data && typeof block.data === "object"

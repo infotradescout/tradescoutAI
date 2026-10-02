@@ -12,9 +12,11 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { getAdminToolSearchText, type AdminTool, type AdminToolSection } from "./adminTools";
+import { useAdminObservationClock, adminSourceState, knownQueueCount } from "./adminQueueState";
 
 interface SuperAdminLeftNavProps {
   sections: AdminToolSection[];
+  searchSections?: AdminToolSection[];
   onNavigate?: () => void;
   onClose?: () => void;
   collapsed?: boolean;
@@ -31,19 +33,22 @@ function isItemActive(pathname: string, item: AdminTool): boolean {
 
 export function SuperAdminLeftNav({
   sections,
+  searchSections = sections,
   onNavigate,
   onClose,
   collapsed = false,
   onToggleCollapsed,
 }: SuperAdminLeftNavProps) {
   const [location, setLocation] = useLocation();
+  const observationNow = useAdminObservationClock();
   const normalizedLocation = (location || "/").split(/[?#]/, 1)[0] || "/";
   const [collapsedSections, setCollapsedSections] = React.useState<Record<string, boolean>>({});
   const [query, setQuery] = React.useState("");
   const searchRef = React.useRef<HTMLInputElement>(null);
 
-  const { data: toolNotifications } = useQuery<{
-    byTool?: Record<string, number>;
+  const notificationsQuery = useQuery<{
+    byTool?: Record<string, number | null>;
+    updatedAt?: string;
   }>({
     queryKey: ["/api/admin/tool-notifications"],
     queryFn: () => apiRequest("GET", "/api/admin/tool-notifications"),
@@ -101,11 +106,18 @@ export function SuperAdminLeftNav({
     );
   }, [normalizedLocation, sections]);
 
+  const toolNotifications = notificationsQuery.data;
   const unreadByTool = toolNotifications?.byTool || {};
+  const queueSourceState = adminSourceState({
+    now: observationNow,
+    loading: notificationsQuery.isLoading,
+    error: notificationsQuery.isError,
+    observedAt: toolNotifications?.updatedAt,
+  });
   const normalizedQuery = query.trim().toLowerCase();
   const visibleSections = React.useMemo(() => {
     if (!normalizedQuery) return sections;
-    return sections
+    return searchSections
       .map((section) => ({
         section: section.section,
         items: section.items.filter((item) =>
@@ -113,7 +125,7 @@ export function SuperAdminLeftNav({
         ),
       }))
       .filter((section) => section.items.length > 0);
-  }, [normalizedQuery, sections]);
+  }, [normalizedQuery, sections, searchSections]);
 
   const openTool = (item: AdminTool) => {
     setLocation(item.path);
@@ -125,7 +137,10 @@ export function SuperAdminLeftNav({
       <div className="flex h-[4.5rem] items-center gap-3 border-b border-white/10 px-3">
         <button
           type="button"
-          onClick={() => setLocation("/admin")}
+          onClick={() => {
+            setLocation("/admin");
+            onNavigate?.();
+          }}
           className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-black"
           aria-label="Open Admin Home"
         >
@@ -158,9 +173,13 @@ export function SuperAdminLeftNav({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Find an admin tool"
+              aria-label="Find an admin tool"
               className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/15"
             />
           </div>
+          <p className="mt-2 text-[11px] text-white/45" role="status">
+            Queue source: {queueSourceState.toLowerCase()}
+          </p>
         </div>
       ) : null}
 
@@ -204,7 +223,10 @@ export function SuperAdminLeftNav({
                   {section.items.map((item) => {
                     const Icon = item.icon;
                     const active = isItemActive(normalizedLocation, item);
-                    const unread = Number(unreadByTool[item.id] || 0);
+                    const unread =
+                      queueSourceState === "Current"
+                        ? knownQueueCount(unreadByTool[item.id])
+                        : null;
                     return (
                       <button
                         key={item.id}
@@ -237,13 +259,23 @@ export function SuperAdminLeftNav({
                             {item.label}
                           </span>
                         ) : null}
-                        {unread > 0 ? (
+                        {unread !== null && unread > 0 ? (
                           <span
                             className={`rounded-full bg-orange-500 px-1.5 py-0.5 text-[9px] font-bold text-black ${
                               collapsed ? "absolute right-1 top-1" : ""
                             }`}
                           >
                             {unread > 99 ? "99+" : unread}
+                          </span>
+                        ) : null}
+                        {Object.prototype.hasOwnProperty.call(unreadByTool, item.id) &&
+                        unread === null ? (
+                          <span
+                            className="text-xs text-amber-200"
+                            title="Queue count unavailable or stale"
+                            aria-label="Queue count unavailable or stale"
+                          >
+                            ?
                           </span>
                         ) : null}
                       </button>

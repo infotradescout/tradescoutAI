@@ -66,6 +66,7 @@ export default function BusinessProfileTheme(props: Props) {
     "--profile-bg": background, "--profile-surface": surface, "--profile-fg": foreground,
     "--profile-surface-fg": surfaceForeground, "--profile-muted": alpha(foreground, .72),
     "--profile-line": alpha(foreground, .16), "--profile-primary": primary,
+    "--profile-primary-soft": alpha(primary, .16),
   } as CSSProperties;
   const logo = publicProfileUrl(logoUrl, true);
   const hero = publicProfileUrl(heroImageUrl, true);
@@ -84,12 +85,13 @@ export default function BusinessProfileTheme(props: Props) {
       }
     : safePhotos[0];
   const photos = heroPhoto ? [heroPhoto, ...safePhotos.filter((photo) => photo.imageUrl !== heroPhoto.imageUrl)] : safePhotos;
-  const [failedCover, setFailedCover] = useState(false);
+  const [failedCoverUrls, setFailedCoverUrls] = useState<Set<string>>(() => new Set());
   const [failedLogo, setFailedLogo] = useState(false);
   const [activePhoto, setActivePhoto] = useState<number | null>(null);
   const [expandedGallery, setExpandedGallery] = useState(false);
   const opener = useRef<HTMLElement | null>(null);
-  useEffect(() => setFailedCover(false), [heroPhoto?.imageUrl]);
+  const mediaKey = JSON.stringify([businessName, hero, safePhotos]);
+  useEffect(() => setFailedCoverUrls(new Set()), [mediaKey]);
   useEffect(() => setFailedLogo(false), [logo]);
   useEffect(() => {
     if (!sharedGallerySlug) return;
@@ -102,7 +104,10 @@ export default function BusinessProfileTheme(props: Props) {
   };
   const selected = activePhoto === null ? undefined : photos[activePhoto];
   const movePhoto = (amount: number) => setActivePhoto((index) => index === null ? null : (index + amount + photos.length) % photos.length);
-  const coverVisible = Boolean(heroPhoto) && !failedCover;
+  // Cover recovery never changes gallery ordering, indexes or shareable slugs.
+  const coverIndex = photos.findIndex((photo) => !failedCoverUrls.has(photo.imageUrl));
+  const coverPhoto = coverIndex >= 0 ? photos[coverIndex] : undefined;
+  const coverVisible = Boolean(coverPhoto);
   const storedTitle = heroTitle || headline || "";
   const supporting = heroText || (heroTitle ? headline : "") || "";
   const titleIsDistinct = storedTitle && !sameText(storedTitle, businessName) && !sameText(storedTitle, categoryLabel);
@@ -151,11 +156,11 @@ export default function BusinessProfileTheme(props: Props) {
             </div>
           </address> : null}
         </header>
-        {coverVisible && heroPhoto ? <section className="bp-cover" aria-label="Business photographs" data-testid="business-profile-cover">
-          <button type="button" className="bp-cover-main" onClick={(event) => openPhoto(0, event.currentTarget)} aria-label={`View ${heroPhoto.imageAlt}`}>
-            <ProfilePhoto src={heroPhoto.imageUrl} alt={heroPhoto.imageAlt} loading="eager" className="bp-cover-image" onExhausted={() => setFailedCover(true)} />
+        {coverVisible && coverPhoto ? <section className="bp-cover" aria-label="Business photographs" data-testid="business-profile-cover">
+          <button type="button" className="bp-cover-main" onClick={(event) => openPhoto(coverIndex, event.currentTarget)} aria-label={`View ${coverPhoto.imageAlt}`}>
+            <ProfilePhoto key={`${mediaKey}-${coverPhoto.imageUrl}`} src={coverPhoto.imageUrl} alt={coverPhoto.imageAlt} loading="eager" className="bp-cover-image" onExhausted={() => setFailedCoverUrls((failed) => new Set([...failed, coverPhoto.imageUrl]))} />
           </button>
-          <button type="button" className="bp-photo-count" onClick={(event) => openPhoto(0, event.currentTarget)}><Images size={16} aria-hidden />{photos.length} {photos.length === 1 ? "photo" : "photos"}</button>
+          <button type="button" className="bp-photo-count" onClick={(event) => openPhoto(coverIndex, event.currentTarget)}><Images size={16} aria-hidden />{photos.length} {photos.length === 1 ? "photo" : "photos"}</button>
         </section> : null}
       </div>
       <div className="bp-body">

@@ -7,6 +7,11 @@ import { LA_PLUMBING_PROFILE_PRESENTATION } from "@shared/localServiceProfile";
 import { LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION } from "@shared/louisianaStoneSolutionsProfile";
 import type { ResolvedProfileGalleryItem } from "@shared/profileGalleryShare";
 import LocalServiceProfileTheme from "./LocalServiceProfileTheme";
+import { ShareCardHost } from "@/components/share/ShareCardHost";
+import { SHARE_CARD_EVENT } from "@/utils/share";
+
+vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({ isAuthenticated: false }) }));
+vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
@@ -203,9 +208,17 @@ describe("LocalServiceProfileTheme", () => {
     expect(dialogShare).toBeDefined();
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Next photo"]')?.click());
     expect(container.textContent).toContain("2 of 3");
-    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft" })));
+    act(() =>
+      document.activeElement?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true })
+      )
+    );
     expect(container.textContent).toContain("1 of 3");
-    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    act(() =>
+      document.activeElement?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+      )
+    );
     expect(container.querySelector('[role="dialog"]')).toBeNull();
     expect(document.body.style.overflow).toBe("");
 
@@ -214,6 +227,265 @@ describe("LocalServiceProfileTheme", () => {
     );
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Close gallery"]')?.click());
     expect(container.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it("enters and contains gallery focus, wraps Tab boundaries, and restores the opener after navigation", () => {
+    renderTheme();
+    const opener = container.querySelector<HTMLButtonElement>(
+      '[aria-label="Open Completed project 2"]'
+    )!;
+    act(() => {
+      opener.focus();
+      opener.click();
+    });
+    const dialog = container.querySelector<HTMLElement>('[role="dialog"]')!;
+    const close = dialog.querySelector<HTMLButtonElement>('[aria-label="Close gallery"]')!;
+    const share = dialog.querySelector<HTMLButtonElement>('[data-testid="share-action"]')!;
+    expect(document.activeElement).toBe(close);
+    const tab = (shiftKey = false) => {
+      const event = new KeyboardEvent("keydown", {
+        key: "Tab",
+        shiftKey,
+        bubbles: true,
+        cancelable: true,
+      });
+      act(() => document.activeElement?.dispatchEvent(event));
+      expect(event.defaultPrevented).toBe(true);
+    };
+    tab(true);
+    expect(document.activeElement).toBe(share);
+    tab();
+    expect(document.activeElement).toBe(close);
+    act(() => opener.focus());
+    expect(document.activeElement).toBe(close);
+    expect(onDirectConnect).not.toHaveBeenCalled();
+    act(() => share.focus());
+    act(() =>
+      share.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }))
+    );
+    expect(dialog.textContent).toContain("3 of 3");
+    expect(document.activeElement).toBe(share);
+    expect(share.dataset.destination).toContain("/gallery/project-3");
+    act(() =>
+      share.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }))
+    );
+    expect(dialog.textContent).toContain("1 of 3");
+    act(() =>
+      share.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }))
+    );
+    expect(dialog.textContent).toContain("3 of 3");
+    act(() => close.click());
+    expect(document.activeElement).toBe(opener);
+    expect(document.body.style.overflow).toBe("");
+  });
+
+  it("ignores Window-targeted keyboard and focus events without errors or gallery drift", async () => {
+    const documentListeners = vi.spyOn(document, "addEventListener");
+    const globalErrors: unknown[] = [];
+    const onError = (event: ErrorEvent) => {
+      globalErrors.push(event.error);
+      event.preventDefault();
+    };
+    window.addEventListener("error", onError);
+    let forwardWindowFocus: ((event: FocusEvent) => void) | undefined;
+    try {
+      renderTheme();
+      const opener = container.querySelector<HTMLButtonElement>(
+        '[aria-label="Open Completed project 2"]'
+      )!;
+      act(() => opener.click());
+      const dialog = container.querySelector<HTMLElement>('[role="dialog"]')!;
+      const close = dialog.querySelector<HTMLButtonElement>('[aria-label="Close gallery"]')!;
+      expect(document.activeElement).toBe(close);
+      // Window focus events do not bubble through document. Forward the event
+      // to the registered gallery listener to exercise its non-Node boundary.
+      const focusListener = documentListeners.mock.calls.find(
+        ([type, listener]) => type === "focusin" && typeof listener === "function" && listener.name === "onFocusIn"
+      )?.[1] as ((event: FocusEvent) => void) | undefined;
+      expect(focusListener).toBeDefined();
+      forwardWindowFocus = (event) => focusListener!(event);
+      window.addEventListener("focusin", forwardWindowFocus);
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }));
+        window.dispatchEvent(new FocusEvent("focusin"));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      expect(globalErrors).toEqual([]);
+      expect(dialog.textContent).toContain("2 of 3");
+      expect(document.activeElement).toBe(close);
+      act(() => close.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
+      expect(dialog.textContent).toContain("3 of 3");
+      expect(document.activeElement).toBe(close);
+      expect(globalErrors).toEqual([]);
+    } finally {
+      if (forwardWindowFocus) window.removeEventListener("focusin", forwardWindowFocus);
+      window.removeEventListener("error", onError);
+      documentListeners.mockRestore();
+    }
+  });
+  it("closes on the first focused Escape after reopen before document Escape registration", () => {
+    // Reproduce the observed startup gap without replacing native rendering:
+    // defer only document capture-key listeners while the gallery is mounted.
+    const nativeAddEventListener = document.addEventListener.bind(document);
+    const delayedRegistration = vi.spyOn(document, "addEventListener").mockImplementation(
+      (type, listener, options) => {
+        if (type === "keydown" && typeof options === "object" && options.capture) return;
+        nativeAddEventListener(type, listener, options);
+      }
+    );
+    try {
+      document.body.style.overflow = "scroll";
+      renderTheme();
+      const opener = container.querySelector<HTMLButtonElement>(
+        '[aria-label="Open Completed project 2"]'
+      )!;
+      act(() => opener.click());
+      act(() => container.querySelector<HTMLButtonElement>('[aria-label="Close gallery"]')!.click());
+      expect(container.querySelector('[role="dialog"]')).toBeNull();
+      act(() => opener.click());
+      const close = container.querySelector<HTMLButtonElement>('[aria-label="Close gallery"]')!;
+      expect(document.activeElement).toBe(close);
+      const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+      act(() => close.dispatchEvent(escape));
+      expect(escape.defaultPrevented).toBe(true);
+      expect(container.querySelector('[role="dialog"]')).toBeNull();
+      expect(document.activeElement).toBe(opener);
+      expect(document.body.style.overflow).toBe("scroll");
+      expect(onDirectConnect).not.toHaveBeenCalled();
+    } finally {
+      delayedRegistration.mockRestore();
+    }
+  });
+  it("restores focus and the prior body lock on Escape and backdrop closure, including one photo", () => {
+    document.body.style.overflow = "scroll";
+    renderTheme({ galleryItems: [galleryItems[0]] });
+    const opener = container.querySelector<HTMLButtonElement>(
+      '[aria-label="Open Completed project 1"]'
+    )!;
+    for (const method of ["Escape", "backdrop"]) {
+      act(() => opener.click());
+      const dialog = container.querySelector<HTMLElement>('[role="dialog"]')!;
+      expect(dialog.querySelector('[aria-label="Next photo"]')).toBeNull();
+      act(() => {
+        if (method === "Escape")
+          document.activeElement?.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+          );
+        else dialog.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      });
+      expect(container.querySelector('[role="dialog"]')).toBeNull();
+      expect(document.activeElement).toBe(opener);
+      expect(document.body.style.overflow).toBe("scroll");
+    }
+  });
+
+  it("closes on profile or gallery source changes without restoring focus to a reused old opener", () => {
+    renderTheme();
+    const open = () =>
+      act(() =>
+        container
+          .querySelector<HTMLButtonElement>('[aria-label="Open Completed project 2"]')!
+          .click()
+      );
+    open();
+    const oldOpener = container.querySelector('[aria-label="Open Completed project 2"]');
+    renderTheme({ profileSlug: "another-business", businessName: "Another business" });
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).not.toBe(oldOpener);
+    expect(document.body.style.overflow).toBe("");
+    open();
+    renderTheme({
+      profileSlug: "another-business",
+      businessName: "Another business",
+      galleryItems: [...galleryItems].reverse(),
+    });
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.body.style.overflow).toBe("");
+    open();
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain("2 of 3");
+    renderTheme({ galleryItems: [] });
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    renderTheme();
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(onDirectConnect).not.toHaveBeenCalled();
+  });
+
+  it("keeps selection and focus across equivalent gallery-array rerenders", () => {
+    renderTheme();
+    act(() =>
+      container.querySelector<HTMLButtonElement>('[aria-label="Open Completed project 1"]')!.click()
+    );
+    const next = container.querySelector<HTMLButtonElement>('[aria-label="Next photo"]')!;
+    act(() => {
+      next.focus();
+      next.click();
+    });
+    renderTheme({ galleryItems: galleryItems.map((item) => ({ ...item })) });
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain("2 of 3");
+    expect(document.activeElement).toBe(next);
+  });
+
+  it("delegates focus, Tab and Escape to the native portaled share card before resuming the gallery", async () => {
+    renderTheme({ trustActions: <ShareCardHost /> });
+    const opener = container.querySelector<HTMLButtonElement>(
+      '[aria-label="Open Completed project 2"]'
+    )!;
+    act(() => opener.click());
+    const gallery = container.querySelector<HTMLElement>('[role="dialog"]')!;
+    const share = gallery.querySelector<HTMLButtonElement>('[data-testid="share-action"]')!;
+    await act(async () => {
+      share.focus();
+      window.dispatchEvent(
+        new CustomEvent(SHARE_CARD_EVENT, {
+          detail: {
+            url: `https://www.thetradescout.com${share.dataset.destination}`,
+            title: "Completed project 2",
+            text: "Project description 2",
+            kind: "profile",
+          },
+        })
+      );
+    });
+    const card = document.querySelector<HTMLElement>('[data-testid="share-card"]')!;
+    expect(card).not.toBeNull();
+    expect(container.contains(card)).toBe(false);
+    expect(card.contains(document.activeElement)).toBe(true);
+    const note = card.querySelector<HTMLTextAreaElement>("textarea")!;
+    act(() => note.focus());
+    expect(document.activeElement).toBe(note);
+    act(() =>
+      note.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }))
+    );
+    expect(gallery.textContent).toContain("2 of 3");
+    const buttons = [...card.querySelectorAll<HTMLButtonElement>("button")];
+    act(() => buttons[buttons.length - 1].focus());
+    const tab = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+    act(() => document.activeElement?.dispatchEvent(tab));
+    expect(tab.defaultPrevented).toBe(true);
+    expect(card.contains(document.activeElement)).toBe(true);
+    await act(async () => {
+      document.activeElement?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    expect(document.querySelector('[data-testid="share-card"]')).toBeNull();
+    expect(container.querySelector('[role="dialog"]')).toBe(gallery);
+    expect(gallery.contains(document.activeElement)).toBe(true);
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(gallery.textContent).toContain("2 of 3");
+    expect(document.activeElement).not.toBe(opener);
+    act(() =>
+      document.activeElement?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+      )
+    );
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(opener);
+    expect(onDirectConnect).not.toHaveBeenCalled();
   });
 
   it("publishes only six nonblank positive recommendations", () => {

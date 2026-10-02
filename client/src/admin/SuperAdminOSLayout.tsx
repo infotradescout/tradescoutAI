@@ -1,7 +1,11 @@
 import React from "react";
 import { useLocation } from "wouter";
-import { findActiveAdminTool, type AdminRole } from "./adminTools";
-import { getAdminNavWorkspacesForRole, getAdminToolPresentation } from "./adminNavWorkspaces";
+import { canSeeAdminTool, findActiveAdminTool, type AdminRole } from "./adminTools";
+import {
+  getAdminNavWorkspacesForRole,
+  getAdminSearchWorkspacesForRole,
+  getAdminToolPresentation,
+} from "./adminNavWorkspaces";
 import { SuperAdminLeftNav } from "./SuperAdminLeftNav";
 import { AdminHeader } from "./AdminHeader";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,9 +23,13 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
   const [location] = useLocation();
   const { user } = useAuth();
   const effectiveRole = role || (user?.role as AdminRole) || "ops_admin";
-  const superFlag = Boolean(isSuperAdmin || (user as any)?.isSuperAdmin === true);
+  const superFlag = isSuperAdmin ?? (user as any)?.isSuperAdmin === true;
   const navSections = React.useMemo(
     () => getAdminNavWorkspacesForRole(effectiveRole, superFlag),
+    [effectiveRole, superFlag]
+  );
+  const searchSections = React.useMemo(
+    () => getAdminSearchWorkspacesForRole(effectiveRole, superFlag),
     [effectiveRole, superFlag]
   );
   const pathname = (location || "/admin").split(/[?#]/, 1)[0] || "/admin";
@@ -32,11 +40,49 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
     return getAdminToolPresentation(matchedItem);
   }, [pathname]);
   const activeSection =
-    navSections.find((section) => section.items.some((item) => item.id === activeItem?.id))
+    searchSections.find((section) => section.items.some((item) => item.id === activeItem?.id))
       ?.section || "Operations";
 
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
   const [railCollapsed, setRailCollapsed] = React.useState(false);
+  const mobileDialogRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!mobileNavOpen) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const dialog = mobileDialogRef.current;
+    const focusable = () =>
+      Array.from(
+        dialog?.querySelectorAll<HTMLElement>("button, input, a[href], select, [tabindex='0']") ||
+          []
+      ).filter((element) => element.offsetParent !== null);
+    focusable()[0]?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMobileNavOpen(false);
+      }
+      if (event.key !== "Tab") return;
+      const elements = focusable();
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      previousFocus?.focus();
+    };
+  }, [mobileNavOpen]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -107,6 +153,7 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
           <div className="sticky top-0 h-[var(--app-height)]">
             <SuperAdminLeftNav
               sections={navSections}
+              searchSections={searchSections}
               onNavigate={() => undefined}
               collapsed={railCollapsed}
               onToggleCollapsed={toggleRail}
@@ -115,7 +162,13 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
         </div>
 
         {mobileNavOpen ? (
-          <div className="fixed inset-0 z-[120] lg:hidden" role="dialog" aria-modal="true">
+          <div
+            ref={mobileDialogRef}
+            className="fixed inset-0 z-[120] lg:hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Admin workspaces"
+          >
             <button
               type="button"
               className="ts-admin-nav-backdrop absolute inset-0"
@@ -125,6 +178,7 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
             <div className="relative h-full w-[min(21rem,88vw)] border-r border-white/10 bg-tsBg shadow-2xl">
               <SuperAdminLeftNav
                 sections={navSections}
+                searchSections={searchSections}
                 onNavigate={() => setMobileNavOpen(false)}
                 onClose={() => setMobileNavOpen(false)}
               />
@@ -138,6 +192,14 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
             currentSection={activeSection}
             onOpenNavigation={() => setMobileNavOpen(true)}
             onFindTool={focusToolSearch}
+            statusPath={
+              searchSections
+                .flatMap((section) => section.items)
+                .find(
+                  (tool) =>
+                    tool.id === "live-stream" && canSeeAdminTool(tool, effectiveRole, superFlag)
+                )?.path
+            }
           />
           <main className="ts-admin-content min-w-0 px-4 py-5 sm:px-6 sm:py-6 xl:px-8 xl:py-7">
             {children}

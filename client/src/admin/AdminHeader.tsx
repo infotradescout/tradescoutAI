@@ -1,4 +1,5 @@
 import { Activity, Menu, Search } from "lucide-react";
+import { Link } from "wouter";
 import { getAdminToolDescription, type AdminTool } from "./adminTools";
 
 interface AdminHeaderProps {
@@ -6,6 +7,7 @@ interface AdminHeaderProps {
   currentSection: string;
   onOpenNavigation: () => void;
   onFindTool: () => void;
+  statusPath?: string;
 }
 
 export function AdminHeader({
@@ -13,6 +15,7 @@ export function AdminHeader({
   currentSection,
   onOpenNavigation,
   onFindTool,
+  statusPath,
 }: AdminHeaderProps) {
   const label = currentItem?.label ?? "Admin workspace";
   const summary = currentItem
@@ -45,23 +48,26 @@ export function AdminHeader({
       <button
         type="button"
         onClick={onFindTool}
-        className="hidden min-h-10 min-w-[13rem] items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-left text-sm text-white/40 transition hover:border-white/20 hover:bg-white/[0.055] hover:text-white/65 md:flex"
+        className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-left text-sm text-white/60 transition hover:border-white/20 hover:bg-white/[0.055] hover:text-white/80 md:min-w-[13rem]"
         aria-label="Find an admin tool"
       >
         <Search className="h-4 w-4" />
-        <span className="flex-1">Find tool</span>
-        <kbd className="rounded border border-white/10 bg-black/20 px-1.5 py-0.5 text-[10px] text-white/35">
+        <span className="hidden flex-1 sm:inline">Find tool</span>
+        <kbd className="hidden rounded border border-white/10 bg-black/20 px-1.5 py-0.5 text-[10px] text-white/35 md:inline">
           /
         </kbd>
       </button>
 
-      <a
-        href="/admin/live-stream"
-        className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-xs font-semibold text-white/60 transition hover:border-cyan-400/25 hover:bg-cyan-400/10 hover:text-cyan-100"
-      >
-        <Activity className="h-4 w-4" />
-        <span className="hidden sm:inline">System status</span>
-      </a>
+      {statusPath ? (
+        <Link
+          href={statusPath}
+          aria-label="System status"
+          className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-xs font-semibold text-white/60 transition hover:border-cyan-400/25 hover:bg-cyan-400/10 hover:text-cyan-100"
+        >
+          <Activity className="h-4 w-4" />
+          <span className="hidden sm:inline">System status</span>
+        </Link>
+      ) : null}
     </header>
   );
 }
