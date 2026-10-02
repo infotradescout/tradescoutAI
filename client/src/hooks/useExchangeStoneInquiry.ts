@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { stoneFabricatorPricingMessage } from "@shared/exchangeStoneSupplier";
 import {
   readStoneInquiryIntent,
   stoneInquiryMessage,
@@ -66,13 +67,16 @@ export function useExchangeStoneInquiry(options: Options) {
     }
     previousActorId.current = actorId;
     if (!listing || !isRetail) return;
-    const requested = readStoneInquiryIntent(new URLSearchParams(window.location.search).get("inquiry"));
-    const preparationKey = `${listing.id}:${requested || ""}:${actorId || "anonymous"}`;
+    const parameters = new URLSearchParams(window.location.search);
+    const requested = readStoneInquiryIntent(parameters.get("inquiry"));
+    const pricingMessage = requested === "availability" && parameters.get("pricing") === "fabricator"
+      ? stoneFabricatorPricingMessage(listing) : null;
+    const preparationKey = `${listing.id}:${requested || ""}:${pricingMessage ? "fabricator" : ""}:${actorId || "anonymous"}`;
     if (!requested || prepared.current === preparationKey) return;
     prepared.current = preparationKey;
     let restored: ReturnType<typeof restoreStoneInquiryDraft> = null;
     try { restored = restoreStoneInquiryDraft(window.sessionStorage, listing.id, actorId); } catch { /* storage is optional for opening a draft */ }
-    const generated = stoneInquiryMessage(listing, requested);
+    const generated = pricingMessage || stoneInquiryMessage(listing, requested);
     setIntent(requested);
     setMessage(restored?.intent === requested ? restored.message : signingInHere && message ? message : generated);
     priorGeneratedMessage.current = generated;
@@ -87,14 +91,17 @@ export function useExchangeStoneInquiry(options: Options) {
     const url = new URL(window.location.href);
     if (readStoneInquiryIntent(url.searchParams.get("inquiry"))) {
       url.searchParams.delete("inquiry");
+      url.searchParams.delete("pricing");
       window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
       setSearch(url.search);
     }
   }
 
-  function prepare(nextIntent: StoneInquiryIntent) {
+  function prepare(nextIntent: StoneInquiryIntent, options?: { fabricatorPricing?: boolean }) {
     if (!listing || !isRetail) return;
-    const generated = stoneInquiryMessage(listing, nextIntent);
+    const generated = nextIntent === "availability" && options?.fabricatorPricing
+      ? stoneFabricatorPricingMessage(listing) || stoneInquiryMessage(listing, nextIntent)
+      : stoneInquiryMessage(listing, nextIntent);
     if (!message || message === priorGeneratedMessage.current) setMessage(generated);
     priorGeneratedMessage.current = generated;
     setIntent(nextIntent);
