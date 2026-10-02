@@ -169,6 +169,46 @@ describe("Public Exchange detail and protected action separation", () => {
     expect(host.textContent).toContain("Slab price TBD");
   });
 
+  it("replaces Honey's JW portal with ISSA attribution and an explicit protected fabricator-pricing request", async () => {
+    state.listing = {
+      ...structuredClone(retailListing),
+      id: "tradescout-stone-honey-onyx",
+      title: "Honey Onyx",
+      price: 47.25,
+      publicDetailPath: "/exchange/building-materials/tradescout-stone-honey-onyx",
+    };
+    await renderDetail();
+    const supplier = host.querySelector('[data-testid="exchange-stone-supplier"]')!;
+    expect(supplier.textContent).toContain("From ISSA Build");
+    expect(supplier.querySelector("a")?.getAttribute("href")).toBe("/issa-build/onyx/inventory/honey-onyx");
+    expect(host.querySelector('[data-testid="exchange-jw-fabricator-portal-link"]')).toBeNull();
+    expect(host.textContent).not.toContain("active JW Stone membership");
+    await act(async () => buttonContaining(supplier, "Request fabricator pricing")!.click());
+    expect(document.body.querySelector("textarea")?.value).toContain("Please confirm fabricator pricing for Honey Onyx from ISSA Build");
+    expect(document.body.textContent).toContain("Sign in to send");
+    expect(state.api).not.toHaveBeenCalled();
+    expect(state.mutate).not.toHaveBeenCalled();
+  });
+
+  it("prepares a fabricator-pricing request from the crawlable Honey CTA and retains it through sign-in restoration", async () => {
+    state.listing = {
+      ...structuredClone(retailListing),
+      id: "tradescout-stone-honey-onyx",
+      title: "Honey Onyx",
+      price: 47.25,
+      publicDetailPath: "/exchange/building-materials/tradescout-stone-honey-onyx",
+    };
+    window.history.replaceState({}, "", state.listing.publicDetailPath + "?inquiry=availability&pricing=fabricator");
+    await renderDetail();
+    const pricingMessage = document.body.querySelector("textarea")!.value;
+    expect(pricingMessage).toContain("Please confirm fabricator pricing for Honey Onyx from ISSA Build");
+    state.authUser = { id: "synthetic-signed-in-actor" };
+    await renderDetail();
+    expect(document.body.querySelector("textarea")?.value).toBe(pricingMessage);
+    expect(state.api).not.toHaveBeenCalled();
+    expect(state.mutate).not.toHaveBeenCalled();
+  });
+
   it("keeps a public local-service discovery link separate from the TradeScout material price and protected inquiry", async () => {
     await renderDetail();
     const services = host.querySelector('[data-testid="exchange-stone-local-services"]')!;

@@ -7,6 +7,7 @@ import {
   stoneReferencePriceCalculation,
 } from "../shared/exchangeStoneBuyerFlow";
 import { stonePublicReferenceSizes } from "../shared/exchangeStonePublicReference";
+import { stonePublicSupplier } from "../shared/exchangeStoneSupplier";
 import { EXCHANGE_STONE_LOCAL_SERVICES } from "../shared/exchangeStoneLocalServices";
 import { isStoneRetailListing } from "../shared/exchangeStoneInquiryDraft";
 import { sanitizePublicListingText } from "../shared/publicListingSafety";
@@ -109,6 +110,8 @@ export function publicExchangePrice(item: PublicExchangeRecord): {
 }
 function itemFacts(item: PublicExchangeRecord): Array<[string, string]> {
   const facts: Array<[string, string]> = [];
+  const supplier = stonePublicSupplier(item);
+  if (supplier) facts.push(["Supplier", supplier.name]);
   for (const [label, value] of [
     ["Condition", item.condition],
     ["Brand", item.brand],
@@ -173,7 +176,9 @@ export function publicExchangeItemSchema(item: PublicExchangeRecord): Record<str
     description: clean(item.description),
     url,
     ...(images.length ? { image: images } : {}),
-    ...(item.brand ? { brand: { "@type": "Brand", name: clean(item.brand, 100) } } : {}),
+    ...(stonePublicSupplier(item) || item.brand
+      ? { brand: { "@type": "Brand", name: stonePublicSupplier(item)?.name || clean(item.brand, 100) } }
+      : {}),
     ...(item.model ? { model: clean(item.model, 100) } : {}),
   };
   // Presence on an active public page is not proof of stock, completed sale or a fixed slab offer.
@@ -287,6 +292,10 @@ export function renderPublicExchangeListing(template: string, item: PublicExchan
   const images = (Array.isArray(item.images) ? item.images : []).slice(0, 16);
   const facts = itemFacts(item);
   const seller = clean(item.businessName || item.sellerName || item.seller?.name, 160);
+  const supplier = stonePublicSupplier(item);
+  const supplierAction = supplier
+    ? `<section data-exchange-stone-supplier><p>From <a href="${e(supplier.productPath)}">${e(supplier.name)}</a></p><p><a href="${e(item.publicDetailPath)}?inquiry=availability&amp;pricing=fabricator">Request fabricator pricing</a></p><p>Review a pricing request through TradeScout. Pricing and eligibility are confirmed before purchase.</p></section>`
+    : "";
   const schema = publicExchangeItemSchema(item);
   const localServices = isStoneRetailListing(item)
     ? `<section aria-label="${e(EXCHANGE_STONE_LOCAL_SERVICES.heading)}" data-exchange-stone-local-services><h2>${e(EXCHANGE_STONE_LOCAL_SERVICES.heading)}</h2><p>${e(EXCHANGE_STONE_LOCAL_SERVICES.description)}</p><p>${e(EXCHANGE_STONE_LOCAL_SERVICES.terms)}</p><p><a href="${e(EXCHANGE_STONE_LOCAL_SERVICES.href)}">${e(EXCHANGE_STONE_LOCAL_SERVICES.linkLabel)}</a></p></section>`
@@ -311,7 +320,9 @@ export function renderPublicExchangeListing(template: string, item: PublicExchan
     title,
     description,
     image: images[0] ? absolute(images[0]) : undefined,
-    body: body.replace("</main>", `${localServices}</main>`),
+    body: (supplier ? body.replace(`<p>Listed by ${e(seller)}</p>`, "<p>Inquiries coordinated through TradeScout</p>") : body)
+      .replace('<p class="price">', `${supplierAction}<p class="price">`)
+      .replace("</main>", `${localServices}</main>`),
     schemas: [schema, breadcrumb],
   });
 }

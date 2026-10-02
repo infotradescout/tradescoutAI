@@ -29,6 +29,7 @@ import {
 import { Page } from "@/components/layout/PagePrimitives";
 import { ShareButton } from "@/components/ShareButton";
 import DefaultProfileTheme from "@/pages/profile-sites/DefaultProfileTheme";
+import { readPublicProfileServiceDetails } from "@/lib/publicProfileServiceDetails";
 import {
   createProfileHistoryBoundaryState,
   isProfileHistoryBoundaryState,
@@ -2532,6 +2533,7 @@ export default function ProfileSiteView() {
           featuredWorkUrl={defaultFeaturedWorkUrl || undefined}
           brandColors={business?.brandColors}
           services={serviceTags}
+          serviceDetails={readPublicProfileServiceDetails(contentBlocks, serviceTags)}
           serviceAreas={serviceAreas}
           aboutText={defaultAboutText}
           galleryItems={galleryItems}
