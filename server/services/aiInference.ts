@@ -62,7 +62,7 @@ const GPT6_INFERENCE_MODELS = new Set(["gpt-6-luna", "gpt-6-sol", "gpt-6.1-sol",
 function inferenceReasoningEffort(model: string): "low" | "minimal" | undefined {
   if (GPT6_INFERENCE_MODELS.has(model)) return "low";
   // Fail before provider work for unknown family members instead of guessing capabilities.
-  if (/^gpt-6(?:[.-]|$)/i.test(model)) {
+  if (/^gpt-6/i.test(model)) {
     throw new Error(`Unsupported GPT-6 inference model: ${model}`);
   }
   return model.toLowerCase().startsWith("gpt-5") ? "minimal" : undefined;

@@ -40,9 +40,16 @@ compatibility change that keeps selection under server control. The handler
 constructs the service request field by field. Authentication and rate limiting
 remain at the original route registration.
 
+`maxTokens` remains a caller-forwarded legacy field. The first-party client
+requests 500 output tokens and the service defaults to 500; this is not a
+server-enforced token or spend ceiling. The separate private evaluation child
+enforces exactly 500 tokens and its own approved request/spend limits. It does
+not establish an application-wide budget policy.
+
 The adapter recognizes exactly `gpt-6-luna`, `gpt-6-sol`, `gpt-6.1-sol`, and
 `gpt-6-astra`. These use Responses with explicit `reasoning.effort: "low"` and
-no sampling controls. Unknown IDs matching `/^gpt-6(?:[.-]|$)/i` fail before a
+no sampling controls. After the exact case-sensitive allowlist, every unknown
+ID matching the case-insensitive `/^gpt-6/i` prefix fails before a
 provider call. Sol and Astra handling is payload compatibility, not a rollout
 assignment. Legacy overrides retain their prior emitted request shape.
 
@@ -52,7 +59,8 @@ upgrade is needed. Any later required SDK/lock change is a separate scope.
 
 The migration changes model, effort (`minimal` to `low`), and sampling
 (`temperature: 0.3` to absent). Do not claim those preserve behavior. Prompts,
-JSON-object output, the 500-token cap, storage disabled, the existing server
+JSON-object output, the client's 500-token request and service default, storage
+disabled, the existing server
 timeout/clamp and the client's five-second abort remain unchanged.
 
 Model output remains a suggestion. Claim confirmation and the server's county,
@@ -97,7 +105,7 @@ advisory authority boundary, p50/p95 latency against the five-second client
 budget, fallback frequency, input/output/reasoning/cache tokens and cost per
 successful task. A provider-rejected baseline is a failed original baseline;
 evaluate any compatibility repair separately instead of rewriting its history.
-The 500-token cap and low reasoning may increase truncation or latency; neither
+The client's 500-token request and low reasoning may increase truncation or latency; neither
 has been measured by offline tests.
 
 Do not activate a canary until quality, latency, cost, required release proof and

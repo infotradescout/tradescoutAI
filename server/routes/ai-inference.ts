@@ -7,7 +7,7 @@ export async function handleAIInference(req: Request, res: Response) {
   try {
     const { systemPrompt, userPrompt, temperature, maxTokens } = req.body;
 
-    // HTTP callers cannot bypass the server's workload model or spending policy.
+    // HTTP callers cannot bypass the server's workload model selection.
     if (Object.prototype.hasOwnProperty.call(req.body, "model")) {
       return res.status(400).json({ error: "Inference model is configured by the server" });
     }

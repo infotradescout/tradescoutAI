@@ -100,15 +100,20 @@ describe("claim inference Responses contract", () => {
     }
   );
 
-  it.each(["gpt-6-luna-2099-01-01", "gpt-6.9-sol", "gpt-6-typo", "GPT-6-LUNA"])(
-    "rejects unsupported family ID %s before any provider call",
-    async (model) => {
-      await expect(callAIInference({ ...input, model })).rejects.toThrow(
-        "Unsupported GPT-6 inference model"
-      );
-      expect(create).not.toHaveBeenCalled();
-    }
-  );
+  it.each([
+    "gpt-6-luna-2099-01-01",
+    "gpt-6.9-sol",
+    "gpt-6-typo",
+    "GPT-6-LUNA",
+    "gpt-6luna",
+    "gpt-6_luna",
+    "GpT-6LuNa",
+  ])("rejects unsupported family ID %s before any provider call", async (model) => {
+    await expect(callAIInference({ ...input, model })).rejects.toThrow(
+      "Unsupported GPT-6 inference model"
+    );
+    expect(create).not.toHaveBeenCalled();
+  });
 
   it("keeps non-reasoning legacy request shape and omits nonfinite sampling", async () => {
     await callAIInference({
