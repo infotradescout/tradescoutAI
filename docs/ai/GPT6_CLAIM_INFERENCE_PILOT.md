@@ -1,8 +1,25 @@
-# GPT-6 Luna claim-inference pilot
+# Held GPT-6 claim-inference adapter preparation
 
-This prepares one opt-in TradeScout workload. The production default remains
+This prepares one opt-in TradeScout service adapter. The code fallback remains
 `gpt-5.4-nano`; no runtime environment, deployment, or provider account is changed
 by this code. The separate Scout tier router keeps its existing model selection.
+
+At `70ae5bc0b77ad80941e54c423665c23e208dff2d`, static search of non-test
+`client/src` found no caller of `startOnboardingFlow` or
+`shouldTriggerOnboarding` outside their hook. `ScoutOS.tsx` instantiates the
+hook, but `?onboarding=true` redirects to the universal `/onboarding` owner.
+No active customer consumer was identified in that searched source. This is
+bounded static evidence, not proof that the API can never run: the authenticated,
+rate-limited `/api/ai/inference` endpoint remains directly callable.
+
+Keep this draft on hold. Merge, deployment, production inference settings, and
+consumer rewiring require a named active owner, product acceptance, full required
+proof and release authority. Do not reactivate a legacy onboarding path to justify
+the benchmark. This adapter preparation is not an active onboarding migration.
+Affirmatively defer the synthetic comparison while consumer/value is unresolved;
+the owner's separate $5/140-request authorization persists but is not an
+obligation to spend. A comparison of this callable service would establish only
+an application-configuration comparison, not primary-flow acceptance.
 
 The lane starts from main `d316f4d9dffc46cc564d1e4980cfb483eecbe0c9` on
 `codex/gpt6-claim-inference-20261002`. The historical pricing checkpoint carried
@@ -62,6 +79,11 @@ Run the unchanged `npm run gate:minimum-release` against the final clean commit
 at integration. Its required disposable database, browser, build and typecheck
 proof must not be replaced with mocked inference tests or a weakened gate.
 Record actual results, baseline failures and unexecuted proof in the draft PR.
+Later standalone database checks do not retroactively complete an earlier failed
+gate. A documentation commit creates a new source head; bind each result to the
+head actually tested. Real browser inference remains unproved. Local development
+sign-in/routing and real-SDK requests over synthetic transport are separate proof,
+not provider availability, model quality, rollback availability or a customer journey.
 
 Live evaluation is disabled by default and is not authorized by this document.
 Before the first paid request, obtain the owner's model selection, request cap
