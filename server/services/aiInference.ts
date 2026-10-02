@@ -9,6 +9,7 @@
  */
 
 import OpenAI from "openai";
+import type { ResponseCreateParamsNonStreaming } from "openai/resources/responses/responses";
 
 // Simple inline logger (avoids circular dependency)
 const logger = {
@@ -26,6 +27,7 @@ export interface AIInferenceRequest {
   userPrompt: string;
   temperature?: number;
   maxTokens?: number;
+  // Trusted service callers only; the HTTP endpoint rejects model overrides.
   model?: string;
 }
 
@@ -47,10 +49,23 @@ function readEnvNumber(name: string, fallback: number, min: number, max: number)
 function selectInferenceModel(requested?: string): string {
   const explicit = String(requested || "").trim();
   if (explicit) return explicit;
+  const inference = String(process.env.SCOUT_OPENAI_MODEL_INFERENCE || "").trim();
+  if (inference) return inference;
   const fast = String(process.env.SCOUT_OPENAI_MODEL_FAST || "").trim();
   if (fast) return fast;
   const defaultModel = String(process.env.SCOUT_OPENAI_MODEL_DEFAULT || "").trim();
   return defaultModel || "gpt-5.4-nano";
+}
+
+const GPT6_INFERENCE_MODELS = new Set(["gpt-6-luna", "gpt-6-sol", "gpt-6.1-sol", "gpt-6-astra"]);
+
+function inferenceReasoningEffort(model: string): "low" | "minimal" | undefined {
+  if (GPT6_INFERENCE_MODELS.has(model)) return "low";
+  // Fail before provider work for unknown family members instead of guessing capabilities.
+  if (/^gpt-6(?:[.-]|$)/i.test(model)) {
+    throw new Error(`Unsupported GPT-6 inference model: ${model}`);
+  }
+  return model.toLowerCase().startsWith("gpt-5") ? "minimal" : undefined;
 }
 
 function extractResponseText(response: any): string {
@@ -82,7 +97,8 @@ export async function callAIInference(req: AIInferenceRequest): Promise<AIInfere
 
   try {
     const model = selectInferenceModel(req.model);
-    const request: any = {
+    const effort = inferenceReasoningEffort(model);
+    const request: ResponseCreateParamsNonStreaming = {
       model,
       instructions: req.systemPrompt,
       input: req.userPrompt,
@@ -95,12 +111,18 @@ export async function callAIInference(req: AIInferenceRequest): Promise<AIInfere
       },
     };
 
-    if (typeof req.temperature === "number" && Number.isFinite(req.temperature)) {
+    // GPT-6 low reasoning does not support sampling controls, including the
+    // temperature supplied by the current client. Preserve the legacy baseline.
+    if (
+      effort !== "low" &&
+      typeof req.temperature === "number" &&
+      Number.isFinite(req.temperature)
+    ) {
       request.temperature = req.temperature;
     }
 
-    if (model.trim().toLowerCase().startsWith("gpt-5")) {
-      request.reasoning = { effort: "minimal" };
+    if (effort) {
+      request.reasoning = { effort };
     }
 
     const response = await openai.responses.create(request, {
