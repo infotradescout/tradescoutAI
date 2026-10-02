@@ -4,9 +4,13 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { SafeProfileImg } from "./safeProfileImage";
 import type PreservedDefaultProfileTheme from "./PreservedDefaultProfileTheme";
 import type { PublicProfileContact } from "@shared/publicProfileContact";
+import type { PublicProfileServiceDetail } from "@/lib/publicProfileServiceDetails";
 import "./BusinessProfileTheme.css";
 
-type Props = ComponentProps<typeof PreservedDefaultProfileTheme> & { publicContact?: PublicProfileContact | null };
+type Props = ComponentProps<typeof PreservedDefaultProfileTheme> & {
+  publicContact?: PublicProfileContact | null;
+  serviceDetails?: PublicProfileServiceDetail[];
+};
 type Photo = Props["galleryItems"][number];
 
 export function publicProfileUrl(value: string | undefined, relative = false): string | undefined {
@@ -52,7 +56,7 @@ export default function BusinessProfileTheme(props: Props) {
     showBadges = true, showStats = true, showServices = true, showServiceAreas = true,
     showRecommendations = true, showContact = true, onDirectConnect, shareAction,
     renderGalleryShare, bookingSection, profileItems, trustActions, lightTrustActions, tradeScoutHandoff,
-    publicContact,
+    publicContact, serviceDetails = [],
   } = props;
   const background = hex(brandColors?.background, "#111315");
   const surface = hex(brandColors?.surface, "#1a1d20");
@@ -171,7 +175,12 @@ export default function BusinessProfileTheme(props: Props) {
               {(photo.title && !sameText(photo.title, businessName)) || photo.description || galleryShare(photo) ? <div className="bp-caption"><div>{photo.title && !sameText(photo.title, businessName) ? <h3>{photo.title}</h3> : null}{photo.description ? <p>{photo.description}</p> : null}</div>{galleryShare(photo)}</div> : null}
             </article>)}</div>
           </section> : null}
-          {showServices && services.length > 0 ? <section id="profile-services" className="bp-section bp-services-section"><h2>Services</h2><div className="bp-services">{services.map((service, index) => showContact ? <button key={`${service}-${index}`} type="button" onClick={() => onDirectConnect(service)} data-testid={`default-profile-service-${index}`}><span>{service}</span><ArrowUpRight size={22} aria-hidden /></button> : <div key={`${service}-${index}`} data-testid={`default-profile-service-${index}`}><span>{service}</span></div>)}</div></section> : null}
+          {showServices && services.length > 0 ? <section id="profile-services" className="bp-section bp-services-section"><h2>Services</h2><div className="bp-services">{services.map((service, index) => {
+            const description = serviceDetails.find((detail) => detail.name === service)?.description;
+            const descriptionId = description ? `business-profile-service-detail-${index}` : undefined;
+            const content = <span className="bp-service-copy"><span>{service}</span>{description ? <span id={descriptionId} className="bp-service-description">{description}</span> : null}</span>;
+            return showContact ? <button key={`${service}-${index}`} type="button" aria-label={`Request ${service}`} aria-describedby={descriptionId} onClick={() => onDirectConnect(service)} data-testid={`default-profile-service-${index}`}>{content}<ArrowUpRight size={22} aria-hidden /></button> : <div key={`${service}-${index}`} data-testid={`default-profile-service-${index}`}>{content}</div>;
+          })}</div></section> : null}
           {showAbout && aboutText ? <section id="profile-about" className="bp-section bp-about"><h2>About</h2><p className="bp-prosese bp-prose">{aboutText}</p></section> : null}
           {profileItems ? <section id="profile-items" className="bp-section bp-items" aria-label="Products and profile items">{profileItems}</section> : null}
           {customBlocks.map((block, index) => <section key={`${block.title}-${index}`} className="bp-section"><h2>{block.title}</h2><p className="bp-prose">{block.body}</p></section>)}

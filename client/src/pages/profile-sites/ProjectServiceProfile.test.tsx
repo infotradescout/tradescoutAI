@@ -3,6 +3,8 @@ import { act, useState, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ProjectServiceProfile from "./ProjectServiceProfile";
+import { ShareCardHost } from "@/components/share/ShareCardHost";
+import { SHARE_CARD_EVENT } from "@/utils/share";
 import ExpressDirectConnectPanel from "./ExpressDirectConnectPanel";
 import { LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION as presentation } from "@shared/louisianaStoneSolutionsProfile";
 
@@ -13,6 +15,8 @@ vi.mock("@/components/ShareButton", () => ({
     <button data-destination={destination}>{label}</button>
   ),
 }));
+vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({ isAuthenticated: false }) }));
+vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock("wouter", () => ({ Link: ({ href, children }: any) => <a href={href}>{children}</a> }));
 
 const base: ComponentProps<typeof ProjectServiceProfile> = {
@@ -43,6 +47,18 @@ const base: ComponentProps<typeof ProjectServiceProfile> = {
   ],
 };
 
+const photos = [
+  base.galleryItems![0],
+  {
+    ...base.galleryItems![0],
+    title: "Second photo",
+    description: "Second description",
+    imageUrl: "/second-photo.jpg",
+    imageAlt: "Second project",
+    slug: "second-photo",
+    imageIndex: 1,
+  },
+];
 function installVisibilityObserver() {
   const instances: TestVisibilityObserver[] = [];
   class TestVisibilityObserver {
@@ -89,6 +105,7 @@ describe("Project service profile review", () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
+    document.body.style.overflow = "";
     vi.unstubAllGlobals();
   });
   const click = (element: HTMLElement | null) => {
@@ -190,7 +207,11 @@ describe("Project service profile review", () => {
     );
     expect(container.querySelector('[aria-label="Next photo"]')).toBeNull();
     expect(document.body.style.overflow).toBe("hidden");
-    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    act(() =>
+      document.activeElement?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+      )
+    );
     expect(container.querySelector('[role="dialog"]')).toBeNull();
     expect(document.activeElement).toBe(photo);
     expect(document.body.style.overflow).toBe("");
@@ -316,5 +337,174 @@ describe("Project service profile review", () => {
     expect(onDirectConnect).toHaveBeenCalledExactlyOnceWith(undefined);
     act(() => root.render(null));
     expect(observers[1].disconnect).toHaveBeenCalledOnce();
+  });
+  it("delegates focus, Tab and Escape to the native portaled share card before resuming the gallery", async () => {
+    act(() =>
+      root.render(
+        <ProjectServiceProfile {...base} galleryItems={photos} trustActions={<ShareCardHost />} />
+      )
+    );
+    const opener = container.querySelector<HTMLButtonElement>('[aria-label="Open Second photo"]')!;
+    act(() => opener.click());
+    const gallery = container.querySelector<HTMLElement>('[role="dialog"]')!;
+    const share = gallery.querySelector<HTMLButtonElement>("[data-destination]")!;
+    await act(async () => {
+      share.focus();
+      window.dispatchEvent(
+        new CustomEvent(SHARE_CARD_EVENT, {
+          detail: {
+            url: `https://www.thetradescout.com${share.dataset.destination}`,
+            title: "Second photo",
+            text: "Second description",
+            kind: "profile",
+          },
+        })
+      );
+    });
+    const card = document.querySelector<HTMLElement>('[data-testid="share-card"]')!;
+    expect(card).not.toBeNull();
+    expect(container.contains(card)).toBe(false);
+    expect(card.contains(document.activeElement)).toBe(true);
+    const note = card.querySelector<HTMLTextAreaElement>("textarea")!;
+    act(() => note.focus());
+    expect(document.activeElement).toBe(note);
+    act(() =>
+      note.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }))
+    );
+    act(() =>
+      note.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }))
+    );
+    expect(gallery.textContent).toContain("2 of 2");
+    const buttons = [...card.querySelectorAll<HTMLButtonElement>("button")];
+    act(() => buttons[buttons.length - 1].focus());
+    const tab = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+    act(() => document.activeElement?.dispatchEvent(tab));
+    expect(tab.defaultPrevented).toBe(true);
+    expect(card.contains(document.activeElement)).toBe(true);
+    await act(async () => {
+      document.activeElement?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    expect(document.querySelector('[data-testid="share-card"]')).toBeNull();
+    expect(container.querySelector('[role="dialog"]')).toBe(gallery);
+    expect(gallery.contains(document.activeElement)).toBe(true);
+    expect(document.body.style.overflow).toBe("hidden");
+    act(() =>
+      document.activeElement?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+      )
+    );
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it("retains navigation focus and restores the original opener and body style", () => {
+    document.body.style.overflow = "scroll";
+    act(() => root.render(<ProjectServiceProfile {...base} galleryItems={photos} />));
+    const opener = container.querySelector<HTMLButtonElement>('[aria-label="View full photo"]')!;
+    opener.focus();
+    click(opener);
+    const gallery = container.querySelector<HTMLElement>('[role="dialog"]')!;
+    const next = gallery.querySelector<HTMLButtonElement>('[aria-label="Next photo"]')!;
+    next.focus();
+    click(next);
+    expect(document.activeElement).toBe(next);
+    expect(gallery.textContent).toContain("2 of 2");
+    act(() =>
+      next.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }))
+    );
+    expect(gallery.textContent).toContain("1 of 2");
+    expect(document.activeElement).toBe(next);
+    click(gallery.querySelector('[aria-label="Close gallery"]'));
+    expect(document.activeElement).toBe(opener);
+    expect(document.body.style.overflow).toBe("scroll");
+    document.body.style.overflow = "";
+  });
+
+  it("closes on source changes without restoring focus to a reused thumbnail, and never revives stale selection", () => {
+    act(() => root.render(<ProjectServiceProfile {...base} galleryItems={photos} />));
+    const opener = container.querySelector<HTMLButtonElement>('[aria-label="View full photo"]')!;
+    click(opener);
+    const focus = vi.spyOn(opener, "focus");
+    const changed = photos.map((item) => ({ ...item, description: "Updated source" }));
+    act(() => root.render(<ProjectServiceProfile {...base} galleryItems={changed} />));
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(focus).not.toHaveBeenCalled();
+    expect(document.body.style.overflow).toBe("");
+    act(() => root.render(<ProjectServiceProfile {...base} galleryItems={photos} />));
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    click(opener);
+    act(() =>
+      root.render(
+        <ProjectServiceProfile {...base} profileSlug="other-business" galleryItems={photos} />
+      )
+    );
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.body.style.overflow).toBe("");
+    focus.mockRestore();
+  });
+
+  it("keeps equivalent photo sources open and injects the missing hero first without changing item slugs", () => {
+    act(() => root.render(<ProjectServiceProfile {...base} galleryItems={[photos[1]]} />));
+    click(container.querySelector('[aria-label="View full photo"]'));
+    const gallery = container.querySelector<HTMLElement>('[role="dialog"]')!;
+    expect(gallery.textContent).toContain("1 of 2");
+    expect(gallery.querySelector("[data-destination]")?.getAttribute("data-destination")).toBe(
+      "/u/louisiana-stone-solutions/gallery/profile-photo"
+    );
+    click(gallery.querySelector('[aria-label="Next photo"]'));
+    expect(gallery.querySelector("img")?.getAttribute("src")).toBe(photos[1].imageUrl);
+    expect(gallery.querySelector("[data-destination]")?.getAttribute("data-destination")).toBe(
+      "/u/louisiana-stone-solutions/gallery/second-photo"
+    );
+    act(() => root.render(<ProjectServiceProfile {...base} galleryItems={[{ ...photos[1] }]} />));
+    expect(container.querySelector('[role="dialog"]')).toBe(gallery);
+    expect(gallery.textContent).toContain("2 of 2");
+    act(() => root.render(null));
+    expect(document.body.style.overflow).toBe("");
+  });
+
+  it.each([
+    { galleryItems: [photos[1], photos[0]] },
+    { galleryItems: [photos[0]] },
+    { presentation: { ...presentation, heroImage: "/new-hero.jpg" } },
+    { profileShareDestination: "/u/new-destination" },
+    {
+      publicRouteContentBlocks: [
+        { type: "publicDiscovery", data: { routes: { gallery: "photos" } } },
+      ],
+    },
+  ])("closes the active gallery when its effective source changes: %j", (change) => {
+    act(() => root.render(<ProjectServiceProfile {...base} galleryItems={photos} />));
+    click(container.querySelector('[aria-label="Open Second photo"]'));
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+    act(() => root.render(<ProjectServiceProfile {...base} galleryItems={photos} {...change} />));
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.body.style.overflow).toBe("");
+  });
+
+  it("ignores consumed and unrelated arrow events and closes on the gallery backdrop", () => {
+    act(() => root.render(<ProjectServiceProfile {...base} galleryItems={photos} />));
+    const opener = container.querySelector<HTMLButtonElement>('[aria-label="View full photo"]')!;
+    click(opener);
+    const gallery = container.querySelector<HTMLElement>('[role="dialog"]')!;
+    const consumed = new KeyboardEvent("keydown", {
+      key: "ArrowRight",
+      bubbles: true,
+      cancelable: true,
+    });
+    consumed.preventDefault();
+    act(() => document.activeElement?.dispatchEvent(consumed));
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" })));
+    expect(gallery.textContent).toContain("1 of 2");
+    act(() => gallery.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })));
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(opener);
+    expect(document.body.style.overflow).toBe("");
   });
 });

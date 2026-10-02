@@ -21,6 +21,7 @@ import {
   Phone,
   X,
 } from "lucide-react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import "./ProjectServiceProfile.css";
 import { ShareButton } from "@/components/ShareButton";
 import { qualifyPublicProfileItemDestination } from "@/lib/publicProfileItemDestination";
@@ -72,10 +73,8 @@ export default function ProjectServiceProfile({
   verifiedBadge = false,
   communityVerification = null,
 }: LocalServiceProfileProps) {
-  const [activeGalleryIndex, setActiveGalleryIndex] = useState<number | null>(null);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [primaryActionVisible, setPrimaryActionVisible] = useState(false);
-  const galleryDialogRef = useRef<HTMLDivElement>(null);
   const requestActionRef = useRef<HTMLButtonElement>(null);
   const mobileRequestRef = useRef<HTMLDivElement>(null);
   const servicesHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -106,6 +105,39 @@ export default function ProjectServiceProfile({
     };
     return [hero, ...suppliedGalleryItems];
   }, [suppliedGalleryItems, presentation.heroImage, presentation.heroImageAlt]);
+  // Scope selection to the source, including photo order and share metadata.
+  const gallerySource = JSON.stringify([
+    profileSlug,
+    businessName,
+    profileShareDestination,
+    publicRouteContentBlocks,
+    galleryItems,
+  ]);
+  const gallerySourceRef = useRef(gallerySource);
+  gallerySourceRef.current = gallerySource;
+  const galleryDialogRef = useRef<HTMLDivElement>(null);
+  const galleryOpenerRef = useRef<HTMLButtonElement | null>(null);
+  const [gallerySelection, setGallerySelection] = useState({
+    source: gallerySource,
+    index: null as number | null,
+  });
+  const activeGalleryIndex =
+    gallerySelection.source === gallerySource ? gallerySelection.index : null;
+  const setActiveGalleryIndex = (
+    next: number | null | ((current: number | null) => number | null)
+  ) => {
+    setGallerySelection((current) => ({
+      source: gallerySource,
+      index:
+        typeof next === "function"
+          ? next(current.source === gallerySource ? current.index : null)
+          : next,
+    }));
+  };
+  const isGalleryOpen = activeGalleryIndex !== null && !!galleryItems[activeGalleryIndex];
+  useEffect(() => {
+    setGallerySelection({ source: gallerySource, index: null });
+  }, [gallerySource]);
   const heroGalleryIndex = Math.max(
     0,
     galleryItems.findIndex((item) => item.imageUrl === presentation.heroImage)
@@ -115,7 +147,6 @@ export default function ProjectServiceProfile({
     .filter(({ index }) => !presentation.heroImage || index !== heroGalleryIndex);
   useEffect(() => {
     setSelectedServices([]);
-    setActiveGalleryIndex(null);
   }, [profileSlug]);
   const publicRecommendations = useMemo(
     () =>
@@ -171,29 +202,44 @@ export default function ProjectServiceProfile({
   };
 
   useEffect(() => {
-    if (!activeGalleryItem) return;
+    if (!isGalleryOpen) return;
+    const dialog = galleryDialogRef.current;
+    if (!dialog) return;
+    const opener = galleryOpenerRef.current;
+    const openedSource = gallerySource;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const previousFocus =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    galleryDialogRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setActiveGalleryIndex(null);
-      if (event.key === "Tab") {
-        const controls = [
-          ...(galleryDialogRef.current?.querySelectorAll<HTMLElement>("button, a[href]") || []),
-        ];
-        const first = controls[0];
-        const last = controls[controls.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last?.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first?.focus();
+    // ShareCardHost has no DialogTrigger, so Radix returns focus to body when it
+    // closes. Recover after its focus scope unmounts; a child modal hides this
+    // gallery with aria-hidden while it owns focus.
+    let focusRecoveryTimer: ReturnType<typeof setTimeout> | undefined;
+    const recoverBodyFocus = () => {
+      clearTimeout(focusRecoveryTimer);
+      focusRecoveryTimer = setTimeout(() => {
+        if (!dialog.isConnected || dialog.closest('[aria-hidden="true"]')) return;
+        if (document.activeElement === document.body) {
+          dialog.querySelector<HTMLButtonElement>("button:not([disabled])")?.focus();
         }
-      }
+      }, 0);
+    };
+    const onFocusIn = (event: FocusEvent) => {
+      if (!(event.target instanceof Node) || !dialog.contains(event.target)) recoverBodyFocus();
+    };
+    const modalVisibilityObserver = new MutationObserver(recoverBodyFocus);
+    modalVisibilityObserver.observe(document.body, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ["aria-hidden"],
+    });
+    const onKeyDown = (event: KeyboardEvent) => {
+      // Child Radix dialogs own their focus scope and Escape handling.
+      if (
+        event.defaultPrevented ||
+        !(event.target instanceof Node) ||
+        !dialog.contains(event.target)
+      )
+        return;
+      if (["ArrowLeft", "ArrowRight"].includes(event.key)) event.preventDefault();
       if (event.key === "ArrowLeft" && galleryItems.length > 1) {
         setActiveGalleryIndex((current) =>
           current === null ? null : (current - 1 + galleryItems.length) % galleryItems.length
@@ -206,13 +252,21 @@ export default function ProjectServiceProfile({
       }
     };
 
+    document.addEventListener("focusin", onFocusIn);
     window.addEventListener("keydown", onKeyDown);
     return () => {
+      clearTimeout(focusRecoveryTimer);
+      modalVisibilityObserver.disconnect();
+      document.removeEventListener("focusin", onFocusIn);
       document.body.style.overflow = previousOverflow;
-      previousFocus?.focus();
       window.removeEventListener("keydown", onKeyDown);
+      galleryOpenerRef.current = null;
+      // Reused thumbnails belong to the new business/source after a switch.
+      if (gallerySourceRef.current === openedSource && opener?.isConnected) {
+        opener.focus({ preventScroll: true });
+      }
     };
-  }, [activeGalleryItem, galleryItems.length]);
+  }, [isGalleryOpen, gallerySource, galleryItems.length]);
 
   return (
     <main
@@ -317,7 +371,8 @@ export default function ProjectServiceProfile({
           >
             <button
               type="button"
-              onClick={() => {
+              onClick={(event) => {
+                galleryOpenerRef.current = event.currentTarget;
                 trackProfileAction({ profileSlug, action: "gallery", surface: "profile_photo" });
                 setActiveGalleryIndex(heroGalleryIndex);
               }}
@@ -447,7 +502,8 @@ export default function ProjectServiceProfile({
                   <button
                     type="button"
                     aria-label={`Open ${item.title}`}
-                    onClick={() => {
+                    onClick={(event) => {
+                      galleryOpenerRef.current = event.currentTarget;
                       trackProfileAction({
                         profileSlug,
                         action: "gallery",
@@ -632,96 +688,108 @@ export default function ProjectServiceProfile({
         </button>
       </div>
 
-      {activeGalleryItem && activeGalleryIndex !== null ? (
-        <div
-          className="fixed inset-0 z-[65] flex items-center justify-center bg-black/95 p-3 sm:p-6"
-          ref={galleryDialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${businessName} photo gallery`}
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setActiveGalleryIndex(null);
-          }}
-        >
-          <div className="flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-slate-950 shadow-2xl">
-            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-              <div className="min-w-0">
-                <p className="truncate font-black text-white">{activeGalleryItem.title}</p>
-                {activeGalleryItem.description ? (
-                  <p className="truncate text-xs text-slate-400">{activeGalleryItem.description}</p>
+      <DialogPrimitive.Root
+        open={isGalleryOpen}
+        onOpenChange={(open) => {
+          if (!open) setActiveGalleryIndex(null);
+        }}
+      >
+        {activeGalleryItem && activeGalleryIndex !== null ? (
+          <DialogPrimitive.Content
+            className="fixed inset-0 z-[65] flex items-center justify-center bg-black/95 p-3 sm:p-6"
+            ref={galleryDialogRef}
+            tabIndex={-1}
+            aria-describedby={undefined}
+            onCloseAutoFocus={(event) => event.preventDefault()}
+            aria-label={`${businessName} photo gallery`}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setActiveGalleryIndex(null);
+            }}
+          >
+            <div className="flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-slate-950 shadow-2xl">
+              <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+                <div className="min-w-0">
+                  <DialogPrimitive.Title asChild>
+                    <p className="truncate font-black text-white">{activeGalleryItem.title}</p>
+                  </DialogPrimitive.Title>
+                  {activeGalleryItem.description ? (
+                    <p className="truncate text-xs text-slate-400">
+                      {activeGalleryItem.description}
+                    </p>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveGalleryIndex(null)}
+                  className="grid h-10 w-10 flex-none place-items-center rounded-full border border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                  aria-label="Close gallery"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black">
+                <img
+                  src={activeGalleryItem.imageUrl}
+                  alt={activeGalleryItem.imageAlt}
+                  className="max-h-[76vh] w-full object-contain"
+                />
+                {galleryItems.length > 1 ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveGalleryIndex((current) =>
+                          current === null
+                            ? null
+                            : (current - 1 + galleryItems.length) % galleryItems.length
+                        )
+                      }
+                      className="absolute left-3 grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/60 text-white hover:bg-black/80"
+                      aria-label="Previous photo"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveGalleryIndex((current) =>
+                          current === null ? null : (current + 1) % galleryItems.length
+                        )
+                      }
+                      className="absolute right-3 grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/60 text-white hover:bg-black/80"
+                      aria-label="Next photo"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  </>
                 ) : null}
               </div>
-              <button
-                type="button"
-                onClick={() => setActiveGalleryIndex(null)}
-                className="grid h-10 w-10 flex-none place-items-center rounded-full border border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
-                aria-label="Close gallery"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
 
-            <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black">
-              <img
-                src={activeGalleryItem.imageUrl}
-                alt={activeGalleryItem.imageAlt}
-                className="max-h-[76vh] w-full object-contain"
-              />
-              {galleryItems.length > 1 ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setActiveGalleryIndex((current) =>
-                        current === null
-                          ? null
-                          : (current - 1 + galleryItems.length) % galleryItems.length
-                      )
-                    }
-                    className="absolute left-3 grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/60 text-white hover:bg-black/80"
-                    aria-label="Previous photo"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setActiveGalleryIndex((current) =>
-                        current === null ? null : (current + 1) % galleryItems.length
-                      )
-                    }
-                    className="absolute right-3 grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/60 text-white hover:bg-black/80"
-                    aria-label="Next photo"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                </>
-              ) : null}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
+                <p className="text-xs text-slate-500">
+                  {activeGalleryIndex + 1} of {galleryItems.length}
+                </p>
+                <ShareButton
+                  destination={
+                    buildProfilePublicItemPath({
+                      profileBasePath: profileShareDestination,
+                      itemType: "gallery",
+                      itemSlug: activeGalleryItem.slug,
+                      contentBlocks: publicRouteContentBlocks,
+                    }) || profileShareDestination
+                  }
+                  title={`${activeGalleryItem.title} | ${businessName}`}
+                  text={presentation.galleryShareText}
+                  variant="outline"
+                  label={`Share ${activeGalleryItem.title}`}
+                  className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                />
+              </div>
             </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
-              <p className="text-xs text-slate-500">
-                {activeGalleryIndex + 1} of {galleryItems.length}
-              </p>
-              <ShareButton
-                destination={
-                  buildProfilePublicItemPath({
-                    profileBasePath: profileShareDestination,
-                    itemType: "gallery",
-                    itemSlug: activeGalleryItem.slug,
-                    contentBlocks: publicRouteContentBlocks,
-                  }) || profileShareDestination
-                }
-                title={`${activeGalleryItem.title} | ${businessName}`}
-                text={presentation.galleryShareText}
-                variant="outline"
-                label={`Share ${activeGalleryItem.title}`}
-                className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-              />
-            </div>
-          </div>
-        </div>
-      ) : null}
+          </DialogPrimitive.Content>
+        ) : null}
+      </DialogPrimitive.Root>
     </main>
   );
 }

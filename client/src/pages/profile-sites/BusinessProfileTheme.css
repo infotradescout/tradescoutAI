@@ -73,6 +73,8 @@
 .bp-services > button { cursor: pointer; transition: border-color .2s ease, background .2s ease; }
 .bp-services > button:hover { border-color: var(--bp-primary); background: color-mix(in srgb, var(--bp-primary) 5%, var(--bp-bg)); }
 .bp-services svg { flex-shrink: 0; align-self: flex-end; }
+.bp-service-copy { display: flex; flex-direction: column; gap: 10px; min-width: 0; max-width: 100%; }
+.bp-service-description { font-size: 15px; font-weight: 400; letter-spacing: normal; line-height: 1.65; color: var(--bp-muted); overflow-wrap: anywhere; }
 .bp-about { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(0, 3fr); gap: 48px; }
 .bp-prose { font-size: 18px; line-height: 1.8; max-width: 65ch; margin: 0; color: var(--bp-muted); white-space: pre-line; overflow-wrap: anywhere; }
 .bp-items > section, .bp-items > section:first-child { border: 0 !important; border-radius: 0 !important; padding: 0 !important; background: transparent !important; }

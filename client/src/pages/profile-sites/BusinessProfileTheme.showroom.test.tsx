@@ -67,6 +67,34 @@ describe("project-led business website composition", () => {
     expect(host.querySelector('a[href="/issa-build/onyx"]')).not.toBeNull();
     expect(host.querySelector(".bp-hero")?.textContent).not.toMatch(/Iran|2 cm|country of origin/i);
   });
+  it("renders supplied service scopes below the original names and preserves request selection", () => {
+    const description = `Original supplied scope. ${"Long scope ".repeat(65)}`;
+    render({ serviceDetails: [
+      { name: defaults.services[1], description },
+      { name: "Unknown service", description: "Undisplayed scope." },
+    ] });
+    const cards = host.querySelectorAll(".bp-services > button");
+    expect(cards).toHaveLength(defaults.services.length);
+    expect(cards[0].querySelector(".bp-service-description")).toBeNull();
+    expect(cards[1].querySelector(".bp-service-copy > span")?.textContent).toBe(defaults.services[1]);
+    expect(cards[1].querySelector(".bp-service-description")?.textContent).toBe(description);
+    expect(host.textContent).not.toContain("Undisplayed scope.");
+    act(() => (cards[1] as HTMLButtonElement).click());
+    expect(request).toHaveBeenLastCalledWith(defaults.services[1]);
+  });
+  it("keeps scoped services noninteractive when contact is hidden and hides the whole disabled section", () => {
+    const serviceDetails = [{ name: defaults.services[0], description: "Original supplied scope." }];
+    render({ serviceDetails, showContact: false });
+    expect(host.querySelectorAll(".bp-services > div")).toHaveLength(defaults.services.length);
+    expect(host.querySelector(".bp-service-description")?.textContent).toBe(serviceDetails[0].description);
+    expect(host.querySelector(".bp-services button")).toBeNull();
+    expect(host.querySelector('[data-testid="business-profile-request"]')).toBeNull();
+    act(() => host.querySelector<HTMLElement>('[data-testid="default-profile-service-0"]')!.click());
+    expect(request).not.toHaveBeenCalled();
+    render({ serviceDetails, showServices: false });
+    expect(host.querySelector("#profile-services")).toBeNull();
+    expect(host.textContent).not.toContain(serviceDetails[0].description);
+  });
   it("does not substitute unrelated photography for an empty gallery", () => {
     render({ galleryItems: [], heroImageUrl: undefined });
     expect(host.querySelector(".bp-cover")).toBeNull();
