@@ -539,7 +539,7 @@ import {
 } from "./auth";
 import { writeClaimEvent } from "./services/claimEventService.js";
 import type { WriteClaimEventRequest } from "./services/claimEventSchema.js";
-import { callAIInference } from "./services/aiInference.js";
+import { handleAIInference } from "./routes/ai-inference.js";
 import { localityTrackingMiddleware } from "./localityTracking";
 import passport from "passport";
 import { oauthPostLoginPath, safeOAuthReturnPath } from "./utils/oauthIdentityPolicy";
@@ -6451,28 +6451,7 @@ export async function registerRoutes(app: any) {
   );
 
   // PHASE 3d-A: AI inference for Scout claim suggestion
-  app.post("/api/ai/inference", isAuthenticated, aiLimiter, async (req: Request, res: Response) => {
-    try {
-      const { systemPrompt, userPrompt, temperature, maxTokens, model } = req.body;
-
-      if (!systemPrompt || !userPrompt) {
-        return res.status(400).json({ error: "systemPrompt and userPrompt are required" });
-      }
-
-      const result = await callAIInference({
-        systemPrompt,
-        userPrompt,
-        temperature,
-        maxTokens,
-        model,
-      });
-
-      res.json(result);
-    } catch (error: any) {
-      logger.error("[API] AI inference error", { error: error.message });
-      res.status(500).json({ error: "AI inference failed" });
-    }
-  });
+  app.post("/api/ai/inference", isAuthenticated, aiLimiter, handleAIInference);
 
   // PHASE 3d-A: Write confirmed claims from Scout onboarding
   app.post("/api/claims/write", isAuthenticated, async (req: Request, res: Response) => {
